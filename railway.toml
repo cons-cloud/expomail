@@ -1,0 +1,17 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install"
+
+[deploy]
+startCommand = "npm run railway-start"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[variables]
+NODE_ENV = "production"
+PORT = "3000"
+
+[git]
+branch = "restore-20251026-1300"

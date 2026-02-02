@@ -1,0 +1,53 @@
+{
+  "name": "hyperemail",
+  "version": "3.0.0",
+  "description": "HyperEmail - Scraper d'emails intelligent avec envoi automatique et export CSV",
+  "main": "gouvernement-scraper.js",
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "preinstall": "npm config set legacy-peer-deps true",
+    "start": "node gouvernement-scraper.js",
+    "check": "node check-app.js",
+    "check-env": "node check-env.js",
+    "configure": "./configure.sh",
+    "build": "LANG=en_US.UTF-8 npm install --no-optional",
+    "render-start": "node check-env.js && node gouvernement-scraper.js",
+    "railway-start": "LANG=en_US.UTF-8 node check-env.js && node gouvernement-scraper.js"
+  },
+  "keywords": [
+    "email",
+    "automation",
+    "nodemailer",
+    "csv"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
+    "@json2csv/plainjs": "^7.0.6",
+    "@sendgrid/mail": "^8.1.6",
+    "@supabase/supabase-js": "^2.76.1",
+    "axios": "^1.6.0",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.4.1",
+    "cheerio": "1.0.0-rc.12",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.2.1",
+    "express-slow-down": "^3.0.1",
+    "helmet": "^8.1.0",
+    "jose": "^6.1.0",
+    "json2csv": "^5.0.7",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^7.0.10",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1",
+    "undici": "^5.28.2",
+    "ws": "^8.18.3",
+    "xlsx": "^0.18.5"
+  }
+}

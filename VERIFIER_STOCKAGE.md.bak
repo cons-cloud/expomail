@@ -1,0 +1,230 @@
+# 🔍 Vérifier le Stockage des Emails
+
+## ✅ Checklist de Vérification
+
+### **1. Vérifier que les Emails sont Scrapés**
+
+**Après avoir cliqué sur "Scraper" :**
+
+1. **Dans l'interface** (http://localhost:3000)
+   - Le compteur doit augmenter : `📧 mairies: 10 emails`
+   - La liste des emails doit s'afficher
+
+2. **Dans les logs du serveur**
+   - Vous devriez voir : `📝 Utilisation des emails de démonstration pour mairies`
+   - Ou : `✅ X emails trouvés`
+
+---
+
+### **2. Vérifier le Stockage en Mémoire**
+
+**Les emails sont stockés dans :**
+```javascript
+emailsByCategory = {
+    mairies: [...],
+    justice: [...],
+    // etc.
+}
+```
+
+**Pour vérifier :**
+1. Scrapez une catégorie
+2. Cliquez sur "🔄 Actualiser"
+3. Les emails doivent apparaître dans la liste
+
+---
+
+### **3. Vérifier l'Export CSV**
+
+**Test de l'export :**
+
+1. **Scrapez des emails**
+   - Cliquez sur "🏛️ Mairies"
+   - Cliquez sur "🔍 Scraper"
+   - Attendez le message de succès
+
+2. **Exportez**
+   - Cliquez sur "📥 Télécharger CSV/Excel"
+   - Un fichier `mairies_XXXXX.csv` doit se télécharger
+
+3. **Ouvrez le fichier**
+   - Avec Excel ou un éditeur de texte
+   - Vous devriez voir :
+   ```csv
+   name;city;email;source;sent;date
+   Mairie de Paris;Paris;mairie@paris.fr;Base de démonstration;false;2025-10-26
+   ```
+
+---
+
+### **4. Vérifier Supabase (Optionnel)**
+
+**Supabase nécessite des credentials valides.**
+
+**Status actuel :**
+- ⚠️ Supabase fonctionne en mode "fallback"
+- ✅ Les emails sont en mémoire
+- ⏳ Supabase sera activé avec les vraies credentials
+
+**Pour activer Supabase :**
+1. Téléchargez le fichier JSON depuis Supabase Console
+2. Renommez-le en `supabase.js`
+3. Placez-le dans le dossier racine
+4. Redémarrez : `npm start`
+
+---
+
+## 🔧 Résolution des Problèmes
+
+### **Problème 1 : "Aucun email à exporter"**
+
+**Cause :** Les emails ne sont pas en mémoire
+
+**Solution :**
+1. Vérifiez que vous avez scrapé avant d'exporter
+2. Actualisez la page
+3. Rescrapez la catégorie
+
+### **Problème 2 : Le CSV est vide**
+
+**Cause :** Les emails n'ont pas été ajoutés à `emailsByCategory`
+
+**Solution :**
+1. Vérifiez les logs du serveur
+2. Redémarrez le serveur : `npm start`
+3. Rescrapez
+
+### **Problème 3 : Supabase ne stocke pas**
+
+**Cause :** Pas de credentials valides
+
+**Solution :**
+- ✅ **C'est normal !** Les emails sont en mémoire
+- ✅ L'export CSV fonctionne quand même
+- ⏳ Supabase sera activé plus tard avec les credentials
+
+---
+
+## 🧪 Test Complet
+
+### **Procédure de Test**
+
+1. **Démarrer**
+   ```bash
+   npm start
+   ```
+
+2. **Ouvrir**
+   ```
+   http://localhost:3000
+   ```
+
+3. **Scraper**
+   - Cliquez sur "🏛️ Mairies"
+   - Cliquez sur "🔍 Scraper cette catégorie"
+   - **Résultat attendu** : "✅ 10 emails trouvés"
+
+4. **Vérifier la Liste**
+   - Vous devez voir 10 emails
+   - Avec nom, ville, email
+
+5. **Exporter CSV**
+   - Cliquez sur "📥 Télécharger CSV/Excel"
+   - **Résultat attendu** : Fichier téléchargé
+
+6. **Ouvrir le CSV**
+   - Avec Excel ou Bloc-notes
+   - **Résultat attendu** : 10 lignes d'emails
+
+---
+
+## ✅ Résultats Attendus
+
+### **Après le Scraping**
+
+**Interface :**
+```
+📧 mairies: 10 emails
+
+Liste :
+• Mairie de Paris - Paris - mairie@paris.fr
+• Mairie de Lyon - Lyon - contact@mairie-lyon.fr
+• ... (8 autres)
+```
+
+**Logs Serveur :**
+```
+📝 Utilisation des emails de démonstration pour mairies
+✅ 10 emails ajoutés
+```
+
+### **Après l'Export CSV**
+
+**Fichier téléchargé :**
+- Nom : `mairies_1730000000.csv`
+- Taille : ~1 KB
+- Contenu : 10 emails + en-têtes
+
+**Contenu du fichier :**
+```csv
+name;city;email;source;sent;date
+Mairie de Paris;Paris;mairie@paris.fr;Base de démonstration;false;2025-10-26T11:00:00.000Z
+Mairie de Lyon;Lyon;contact@mairie-lyon.fr;Base de démonstration;false;2025-10-26T11:00:00.000Z
+...
+```
+
+---
+
+## 📊 Stockage Actuel
+
+### **Où sont les Emails ?**
+
+```
+┌─────────────────────────────────┐
+│     STOCKAGE ACTUEL             │
+├─────────────────────────────────┤
+│                                 │
+│  ✅ MÉMOIRE (RAM)               │
+│     • Rapide                    │
+│     • Disponible immédiatement  │
+│     • Perdu au redémarrage      │
+│                                 │
+│  ✅ EXPORT CSV                  │
+│     • Téléchargeable            │
+│     • Permanent sur votre PC    │
+│     • Compatible Excel          │
+│                                 │
+│  ⏳ FIREBASE (Optionnel)        │
+│     • Nécessite credentials     │
+│     • Permanent dans le cloud   │
+│     • Sera activé plus tard     │
+│                                 │
+└─────────────────────────────────┘
+```
+
+---
+
+## 🎯 Conclusion
+
+### **Ce Qui Fonctionne**
+- ✅ Scraping (avec emails de démonstration)
+- ✅ Stockage en mémoire
+- ✅ Affichage dans l'interface
+- ✅ Export CSV/Excel
+- ✅ Envoi d'emails
+
+### **Ce Qui Est Optionnel**
+- ⏳ Supabase (nécessite credentials)
+- ⏳ Scraping web réel (bloqué par les sites)
+
+### **Recommandation**
+**Utilisez l'export CSV pour sauvegarder vos emails !**
+
+Après chaque scraping :
+1. Cliquez sur "📥 Télécharger CSV"
+2. Sauvegardez le fichier
+3. Vous avez une copie permanente !
+
+---
+
+© 2025 **Maroc Gestion Entreprendre** - Tous droits réservés

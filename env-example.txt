@@ -1,0 +1,18 @@
+# Configuration de sécurité - Copiez ce fichier en .env
+# ATTENTION: Ne jamais partager le fichier .env !
+
+# Credentials administrateur (OBLIGATOIRES)
+ADMIN_EMAIL=votre-email@exemple.com
+ADMIN_PASS=votre-mot-de-passe-super-secret
+
+# JWT Secret (optionnel - généré aléatoirement si non défini)
+JWT_SECRET=votre-jwt-secret-64-caracteres-minimum
+
+# Configuration SMTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=votre-email@gmail.com
+SMTP_PASS=votre-mot-de-passe-app
+
+# Port du serveur
+PORT=3000

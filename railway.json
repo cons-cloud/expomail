@@ -1,0 +1,18 @@
+{
+  "build": {
+    "builder": "npm",
+    "installCommand": "npm ci --no-optional",
+    "buildCommand": "npm run build || true"
+  },
+  "deploy": {
+    "startCommand": "npm run railway-start",
+    "healthCheck": {
+      "path": "/",
+      "status": 200
+    }
+  },
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "3000"
+  }
+}

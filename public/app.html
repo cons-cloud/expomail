@@ -1,0 +1,3833 @@
+<!-- Librairies JS -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expobeton-Email - Gestion d'Emails</title>
+    <script>
+        // Protection : Vérifier l'authentification
+        // Vérification JWT
+        function checkAuth() {
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Fonction de déconnexion
+        function logout() {
+            localStorage.removeItem('jwt_token');
+            window.location.href = '/login.html';
+        }
+
+        // Vérifier immédiatement
+        if (!checkAuth()) {
+            // Redirection en cours
+        }
+
+        // Utilitaire pour requêtes API avec JWT
+        async function apiFetch(url, options = {}) {
+            const token = localStorage.getItem('jwt_token');
+            options.headers = options.headers || {};
+            if (token) {
+                options.headers['Authorization'] = 'Bearer ' + token;
+            }
+            return fetch(url, options);
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        :root {
+            --primary: #4C6FFF;
+            --primary-dark: #3D5BD9;
+            --secondary: #6C63FF;
+            --accent: #FF6B8B;
+            --success: #2ED573;
+            --danger: #FF4757;
+            --warning: #FFA502;
+            --background: #0A0A1A;
+            --surface: rgba(30, 30, 50, 0.95);
+            --surface-light: rgba(40, 40, 60, 0.95);
+            --text-bright: #FFFFFF;
+            --text-medium: rgba(255, 255, 255, 0.9);
+            --text-dim: rgba(255, 255, 255, 0.7);
+            --border: rgba(76, 111, 255, 0.3);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--text-bright);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(30, 30, 50, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #26AE60 100%);
+            color: white;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--text-bright);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+            color: white;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .logout-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.6s;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.5);
+            background: linear-gradient(135deg, #c44569 0%, #ff4757 100%);
+        }
+
+        .logout-btn:hover::before {
+            left: 100%;
+        }
+
+        .logout-btn:active {
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+        }
+
+        .logout-btn::after {
+            content: '🚪';
+            font-size: 1.1em;
+            margin-left: 8px;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .logout-btn:hover::after {
+            transform: translateX(3px);
+        }
+
+        /* Animation de pulsation pour attirer l'attention */
+        @keyframes logoutPulse {
+            0% { box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
+            50% { box-shadow: 0 4px 20px rgba(255, 71, 87, 0.5); }
+            100% { box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
+        }
+
+        .logout-btn {
+            animation: logoutPulse 3s infinite;
+        }
+
+        .logout-btn:hover {
+            animation: none;
+        }
+
+        .main-content {
+            display: grid;
+            gap: 30px;
+        }
+
+        .card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: var(--text-bright);
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        /* Import Section Styles */
+        .import-section {
+            margin-bottom: 30px;
+        }
+
+        .import-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--surface-light);
+        }
+
+        .import-area:hover {
+            border-color: var(--primary);
+            background: rgba(76, 111, 255, 0.05);
+        }
+
+        .import-placeholder {
+            color: var(--text-medium);
+        }
+
+        .import-placeholder p {
+            margin: 5px 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* Styles améliorés pour tous les boutons */
+        .btn, .secondary-btn, .danger-btn, .success-btn, .primary-btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Effet de brillance au survol */
+        .btn::before, .secondary-btn::before, .danger-btn::before, .success-btn::before, .primary-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before, .secondary-btn:hover::before, .danger-btn:hover::before, .success-btn:hover::before, .primary-btn:hover::before {
+            left: 100%;
+        }
+
+        /* Bouton Actualiser - Effet de rotation */
+        .secondary-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-bright);
+            border: 2px solid transparent;
+        }
+
+        .secondary-btn:hover {
+            transform: translateY(-2px) rotate(1deg);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .secondary-btn:active {
+            transform: translateY(0) rotate(0deg);
+        }
+
+        /* Icône de rotation pour Actualiser */
+        .secondary-btn::after {
+            content: '🔄';
+            font-size: 1.1em;
+        }
+
+        /* Bouton Vider tous les contacts - Effet de secousse */
+        .danger-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+            color: var(--text-bright);
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .danger-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            background: linear-gradient(135deg, #ee5253 0%, #ff6b6b 100%);
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) translateY(-2px); }
+            25% { transform: translateX(-5px) translateY(-2px); }
+            75% { transform: translateX(5px) translateY(-2px); }
+        }
+
+        .danger-btn::after {
+            content: '🗑️';
+            font-size: 1.1em;
+        }
+
+        /* Bouton Exporter les contacts - Effet de pulsation */
+        .success-btn {
+            background: linear-gradient(135deg, #2ed573 0%, #26ae60 100%);
+            color: var(--text-bright);
+            border: 2px solid transparent;
+        }
+
+        .success-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4);
+            background: linear-gradient(135deg, #26ae60 0%, #2ed573 100%);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4); }
+            50% { box-shadow: 0 8px 35px rgba(46, 213, 115, 0.6); }
+            100% { box-shadow: 0 8px 25px rgba(46, 213, 115, 0.4); }
+        }
+
+        .success-btn::after {
+            content: '📥';
+            font-size: 1.1em;
+        }
+
+        /* Bouton Envoyer le nombre spécifié - Effet de glow */
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: var(--text-bright);
+            border: 2px solid transparent;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+        }
+
+        .btn-success::after {
+            content: '📧';
+            font-size: 1.1em;
+        }
+
+        /* Bouton Envoyer à TOUS - Effet d'échelle */
+        .primary-btn {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: var(--text-bright);
+            border: 2px solid transparent;
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(250, 112, 154, 0.4);
+            background: linear-gradient(135deg, #fee140 0%, #fa709a 100%);
+        }
+
+        .primary-btn::after {
+            content: '🚀';
+            font-size: 1.2em;
+        }
+
+        /* Effet de chargement pour tous les boutons */
+        .btn.loading, .secondary-btn.loading, .danger-btn.loading, .success-btn.loading, .primary-btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .btn.loading::after, .secondary-btn.loading::after, .danger-btn.loading::after, .success-btn.loading::after, .primary-btn.loading::after {
+            content: '⏳';
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive pour les boutons */
+        @media (max-width: 768px) {
+            .btn, .secondary-btn, .danger-btn, .success-btn, .primary-btn {
+                padding: 12px 20px;
+                font-size: 0.9em;
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .add-row-btn,
+            .send-manual-btn,
+            .clear-manual-btn {
+                width: auto;
+                max-width: 200px;
+                justify-self: flex-start;
+                font-size: 0.85em;
+                padding: 8px 12px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        .email-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: var(--surface-light);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .email-item.sent {
+            opacity: 0.7;
+            border-color: var(--success);
+        }
+
+        .email-info strong {
+            color: var(--primary);
+        }
+
+        .email-status {
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .form-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface-light);
+            color: var(--text-bright);
+            font-size: 1em;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(76, 111, 255, 0.2);
+            background: var(--surface);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(46, 213, 115, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-error {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .email-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Styles pour l'envoi manuel */
+        .manual-send-section {
+            margin-top: 30px;
+        }
+
+        .manual-inputs {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-row input {
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface-light);
+            color: var(--text-bright);
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .input-row input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(76, 111, 255, 0.2);
+            background: var(--surface);
+        }
+
+        .input-row input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .remove-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            background: #D63031;
+            transform: scale(1.1);
+        }
+
+        .add-row-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            width: auto;
+            max-width: 250px;
+            justify-self: flex-start;
+        }
+
+        .add-row-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .manual-emails-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .manual-email-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--surface-light);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .manual-email-info {
+            flex: 1;
+        }
+
+        .manual-email-info strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .manual-email-info small {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .manual-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .send-manual-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 28px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .send-manual-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+
+        .clear-manual-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 28px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .clear-manual-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        /* ===== DESIGN RESPONSIVE COMPLET ===== */
+        
+        /* Variables pour responsive */
+        :root {
+            --mobile-breakpoint: 480px;
+            --tablet-breakpoint: 768px;
+            --desktop-breakpoint: 1024px;
+            --large-breakpoint: 1200px;
+        }
+
+        /* Responsive général */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--background);
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 10px;
+            position: relative;
+            overflow-x: hidden;
+            color: var(--text-bright);
+            line-height: 1.6;
+            font-size: 16px; /* Base 16px pour accessibilité */
+        }
+
+        .container {
+            max-width: var(--large-breakpoint)px;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+
+        /* Header Responsive */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(30, 30, 50, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Cartes Responsive */
+        .card {
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .card h2 {
+            margin-bottom: 15px;
+            color: var(--text-bright);
+            font-size: clamp(1.2rem, 3vw, 1.4rem);
+            font-weight: 600;
+        }
+
+        /* Import Section Responsive */
+        .import-section {
+            margin-bottom: 20px;
+        }
+
+        .import-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: clamp(20px, 5vw, 40px);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: var(--surface-light);
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .import-placeholder {
+            color: var(--text-medium);
+        }
+
+        .import-placeholder div {
+            font-size: clamp(2rem, 5vw, 3em);
+            margin-bottom: 10px;
+        }
+
+        .import-placeholder p {
+            margin: 5px 0;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+        }
+
+        /* Boutons Responsive Universels */
+        .btn, .secondary-btn, .danger-btn, .success-btn, .primary-btn,
+        .btn-success, .logout-btn, .send-manual-btn, .clear-manual-btn, .add-row-btn {
+            padding: clamp(10px, 2.5vw, 14px) clamp(16px, 4vw, 28px);
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: clamp(0.85rem, 2vw, 0.95em);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-height: 44px; /* Accessibilité iOS */
+            min-width: 44px;
+            touch-action: manipulation;
+        }
+
+        /* Action Buttons Responsive */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-actions, .manual-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Formulaires Responsive */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(255,255,255,0.9);
+            font-size: clamp(0.9rem, 2vw, 0.95em);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: clamp(12px, 3vw, 18px);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface-light);
+            color: var(--text-bright);
+            font-size: clamp(0.9rem, 2.2vw, 1em);
+            transition: all 0.3s ease;
+            font-family: inherit;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 44px; /* Accessibilité */
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(76, 111, 255, 0.2);
+            background: var(--surface);
+        }
+
+        /* Envoi Manuel Responsive */
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .manual-emails-list {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .manual-email-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--surface-light);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .manual-email-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .manual-email-info strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .manual-email-info small {
+            color: rgba(255, 255, 255, 0.7);
+            word-break: break-all;
+        }
+
+        /* Email List Responsive */
+        .email-list, .manual-emails-list {
+            max-height: 300px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
+        }
+
+        .email-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: var(--surface-light);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .email-info {
+            flex: 1;
+            min-width: 0;
+            margin-right: 10px;
+        }
+
+        .email-info strong {
+            color: var(--primary);
+            display: block;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .email-info small {
+            color: rgba(255, 255, 255, 0.7);
+            word-break: break-all;
+        }
+
+        /* Alertes Responsive */
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 500;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+        }
+
+        /* ===== BREAKPOINTS SPÉCIFIQUES ===== */
+
+        /* Mobile (jusqu'à 480px) */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+                font-size: 14px;
+            }
+
+            .container {
+                padding: 10px;
+                margin: 5px;
+            }
+
+            .app-layout {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+
+            .main-content {
+                width: 100%;
+                padding: 10px;
+            }
+
+            .header {
+                padding: 15px;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+
+            .section {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .btn, .secondary-btn, .danger-btn, .success-btn, .primary-btn {
+                width: 100%;
+                margin: 5px 0;
+                padding: 15px;
+                font-size: 16px; /* Taille minimum pour iOS */
+            }
+
+            .file-input {
+                padding: 20px;
+                font-size: 14px;
+            }
+
+            .email-list {
+                max-height: 250px;
+            }
+
+            .email-item {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 15px;
+            }
+
+            .input-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .input-row input {
+                width: 100%;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10px;
+                padding: 15px;
+            }
+
+            .tracking-widget {
+                padding: 15px;
+            }
+
+            .tracking-stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .tracking-list {
+                max-height: 200px;
+            }
+
+            .tracking-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            /* Optimisations tactiles */
+            .btn, .secondary-btn, .danger-btn, .success-btn, .primary-btn {
+                min-height: 48px; /* Taille minimum pour le touch */
+                touch-action: manipulation; /* Désactiver le double-tap zoom */
+            }
+            
+            .email-item {
+                min-height: 60px; /* Espace suffisant pour le touch */
+                touch-action: manipulation;
+            }
+            
+            .stat-card {
+                min-height: 80px;
+                touch-action: manipulation;
+            }
+            
+            input[type="file"], input[type="text"], input[type="email"], textarea {
+                min-height: 44px; /* Taille minimum pour le touch */
+                font-size: 16px; /* Éviter le zoom sur iOS */
+            }
+            
+            /* Navigation mobile */
+            .nav-item {
+                padding: 15px;
+                min-height: 50px;
+                touch-action: manipulation;
+            }
+            
+            /* Modal mobile */
+            .modal-content {
+                max-height: 90vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Scroll optimisé */
+            .email-list, .tracking-list {
+                -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
+            }
+        }
+
+        /* Tablette (481px à 768px) */
+        @media (min-width: 481px) and (max-width: 768px) {
+            body {
+                padding: 8px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            .app-layout {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: auto;
+                padding: 20px;
+                margin-bottom: 15px;
+            }
+            
+            .main-content {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            .btn, .secondary-btn, .danger-btn, .success-btn, .primary-btn {
+                padding: 12px 20px;
+                font-size: 0.9em;
+                margin: 5px;
+            }
+            
+            .file-input {
+                padding: 30px;
+            }
+            
+            .email-list {
+                max-height: 300px;
+            }
+            
+            .input-row {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .input-row input {
+                flex: 1;
+                min-width: 200px;
+            }
+            
+            .modal-content {
+                width: 90%;
+                padding: 20px;
+            }
+            
+            .tracking-widget {
+                padding: 20px;
+            }
+            
+            .tracking-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+            
+            .tracking-list {
+                max-height: 250px;
+            }
+        }
+
+        /* Desktop (769px à 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 0 12px;
+            }
+
+            .main-content {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .import-section {
+                width: 100%;
+            }
+
+            .manual-send-section {
+                width: 100%;
+            }
+        }
+
+        /* Large Desktop (1025px et plus) */
+        @media (min-width: 1025px) {
+            body {
+                padding: 20px;
+            }
+
+            .main-content {
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .import-section {
+                width: 100%;
+            }
+
+            .manual-send-section {
+                width: 100%;
+            }
+
+            .action-buttons {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Ultra Large (1440px et plus) */
+        @media (min-width: 1440px) {
+            .container {
+                max-width: 1400px;
+            }
+
+            .main-content {
+                display: flex;
+                flex-direction: column;
+                gap: 30px;
+            }
+        }
+
+        /* ===== COMPATIBILITÉ NAVIGATEUR ===== */
+
+        /* Support vieux navigateurs */
+        @supports not (backdrop-filter: blur(10px)) {
+            .card, .header {
+                background: rgba(30, 30, 50, 0.95);
+            }
+        }
+
+        /* Safari iOS */
+        @supports (-webkit-touch-callout: none) {
+            .btn, input, textarea {
+                -webkit-appearance: none;
+                border-radius: 12px;
+            }
+        }
+
+        /* Firefox */
+        @supports (-moz-appearance: none) {
+            input[type="email"] {
+                -moz-appearance: none;
+            }
+        }
+
+        /* Edge/IE */
+        @supports (-ms-ime-align: auto) {
+            .card {
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        /* ===== ACCESSIBILITÉ ===== */
+
+        /* Focus visible pour navigation clavier */
+        .btn:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Mode contraste élevé */
+        @media (prefers-contrast: high) {
+            :root {
+                --border: rgba(76, 111, 255, 0.8);
+                --text-medium: rgba(255, 255, 255, 0.95);
+            }
+        }
+
+        /* Mode réduit mouvement */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Mode sombre clair */
+        @media (prefers-color-scheme: light) {
+            :root {
+                --background: #f8f9fa;
+                --surface: rgba(255, 255, 255, 0.95);
+                --surface-light: rgba(248, 249, 250, 0.8);
+                --text-bright: #212529;
+                --text-medium: #495057;
+                --text-dim: #6c757d;
+            }
+        }
+
+        /* ===== BARRE LATÉRALE ===== */
+        
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            color: var(--text-medium);
+            font-size: 0.9rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            color: var(--text-medium);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--text-bright);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .nav-icon {
+            font-size: 1.2em;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-text {
+            flex: 1;
+        }
+
+        .nav-badge {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            color: var(--text-bright);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            color: var(--text-medium);
+            font-size: 0.8rem;
+        }
+
+        .main-content-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Sidebar */
+        @media (max-width: 768px) {
+            .app-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: static;
+                margin-bottom: 20px;
+            }
+
+            .nav-link {
+                padding: 12px 14px;
+            }
+
+            .nav-icon {
+                font-size: 1.1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                padding: 15px;
+            }
+
+            .sidebar-header h2 {
+                font-size: 1.3rem;
+            }
+
+            .nav-link {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+
+            .user-avatar {
+                width: 35px;
+                height: 35px;
+            }
+        }
+
+        /* ===== FIN BARRE LATÉRALE ===== */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="app-layout">
+            <!-- Barre Latérale -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Expobeton-Email</h2>
+                    <p>Plateforme d'emailing</p>
+                </div>
+                
+                <nav>
+                    <ul class="nav-menu">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link active" data-section="import">
+                                <span class="nav-icon">📊</span>
+                                <span class="nav-text">Importation</span>
+                                <span class="nav-badge" id="importBadge">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-section="contacts">
+                                <span class="nav-icon">👥</span>
+                                <span class="nav-text">Contacts</span>
+                                <span class="nav-badge" id="contactBadge">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-section="send">
+                                <span class="nav-icon">📧</span>
+                                <span class="nav-text">Envoi Groupé</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-section="manual">
+                                <span class="nav-icon">✍️</span>
+                                <span class="nav-text">Envoi Manuel</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-section="stats">
+                                <span class="nav-icon">📈</span>
+                                <span class="nav-text">Statistiques</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <div class="user-avatar">A</div>
+                        <div class="user-details">
+                            <div class="user-name">Admin</div>
+                            <div class="user-role">Administrateur</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 15px 0; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.8em;">
+                        <div style="margin-bottom: 8px;">
+                            <strong>🔧 Support Technique :</strong>
+                        </div>
+                        <div style="margin-bottom: 5px;">
+                            <a href="tel:+212600989761" style="color: #667eea; text-decoration: none;">+212 600-989-761</a>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <a href="mailto:webconsulting66@gmail.com" style="color: #667eea; text-decoration: none;">webconsulting66@gmail.com</a>
+                        </div>
+                        <div style="text-align: center; margin-top: 8px;">
+                            <a href="https://webconsulting.vercel.app" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: none; font-weight: bold;">
+                                🔧 Webconsulting
+                            </a>
+                        </div>
+                        <div style="text-align: center; margin-top: 8px; font-size: 0.7em;">
+                            <a href="/mentions-legales.html" style="color: rgba(255,255,255,0.5); text-decoration: none;">
+                                📋 Mentions légales
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <button onclick="logout()" class="logout-btn" style="width: 100%;">
+                        <span>Déconnexion</span>
+                        <span>🚪</span>
+                    </button>
+                </div>
+            </aside>
+            
+            <!-- Zone de Contenu Principal -->
+            <main class="main-content-area">
+                <!-- Section Importation -->
+                <section class="content-section active" id="import-section">
+                    <div class="card import-section">
+                        <div class="card-header">
+                            <h2>� Importation de contacts</h2>
+                        </div>
+                        <div class="form-content">
+                            <div class="import-area" onclick="document.getElementById('importFile').click()">
+                                <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="display: none;" />
+                                <div class="import-placeholder">
+                                    <div style="font-size: 3em; margin-bottom: 10px;">📊</div>
+                                    <p><strong>Cliquez pour importer un fichier</strong></p>
+                                    <p style="font-size: 0.9em; color: rgba(255,255,255,0.5);">Formats supportés: CSV, Excel (.xlsx, .xls)</p>
+                                </div>
+                            </div>
+                            <div id="importStatus" style="margin-top: 15px;"></div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Contacts -->
+                <section class="content-section" id="contacts-section">
+                    <div class="card action-card">
+                        <h2>📋 Gestion des contacts</h2>
+                        <div class="action-buttons">
+                            <button onclick="loadContacts()" class="secondary-btn">Actualiser</button>
+                            <button onclick="clearAllContacts()" class="danger-btn">Vider tous les contacts</button>
+                            <button onclick="exportContacts()" class="success-btn">Exporter les contacts</button>
+                        </div>
+                        <div id="contactStats" style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                            <strong>Total contacts:</strong> <span id="totalContacts">0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card email-card" id="emailsCard">
+                        <div class="card-header">
+                            <h2>Contacts importés</h2>
+                            <div class="card-actions">
+                                <span style="color: rgba(255,255,255,0.7); font-size: 0.9em;">Organisation | Email</span>
+                            </div>
+                        </div>
+                        <div id="emailList" class="email-list">
+                            <p style="text-align: center; color: #999;">Importez un fichier pour voir les contacts</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Envoi Groupé -->
+                <section class="content-section" id="send-section">
+                    <div class="card email-form" id="sendCard">
+                        <div class="card-header">
+                            <h2>Envoyer les emails</h2>
+                        </div>
+                        <div class="form-content">
+                            <div class="form-group">
+                                <label for="subject">Sujet</label>
+                                <input type="text" id="subject" placeholder="Ex: Information importante">
+                            </div>
+                            <div class="form-group">
+                                <label for="message">Message</label>
+                                <textarea id="message" placeholder="Écrivez votre message ici..." rows="6"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="emailCount">Nombre d'emails à envoyer</label>
+                                <input type="number" id="emailCount" placeholder="Ex: 100" min="1">
+                                <small style="color: rgba(255,255,255,0.5);">Maximum: <span id="maxEmails">0</span> contacts disponibles</small>
+                            </div>
+                            <div class="form-actions">
+                                <button onclick="sendCustomEmails()" class="success-btn">Envoyer le nombre spécifié</button>
+                                <button onclick="sendEmails(999999)" class="primary-btn">Envoyer à TOUS</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Envoi Manuel -->
+                <section class="content-section" id="manual-section">
+                    <div class="card manual-send-section">
+                        <div class="card-header">
+                            <h2>✍️ Envoi manuel d'emails</h2>
+                        </div>
+                        <div class="form-content">
+                            <div class="form-group">
+                                <label>Ajouter des destinataires manuellement</label>
+                                <div class="manual-inputs" id="manualInputs">
+                                    <div class="input-row">
+                                        <input type="text" placeholder="Organisation" class="manual-org">
+                                        <input type="email" placeholder="Email" class="manual-email">
+                                        <button class="remove-btn" onclick="removeManualRow(this)">×</button>
+                                    </div>
+                                </div>
+                                <button class="add-row-btn" onclick="addManualRow()">
+                                    <span>➕</span>
+                                    <span>Ajouter un destinataire</span>
+                                </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Liste des destinataires manuels</label>
+                                <div class="manual-emails-list" id="manualEmailsList">
+                                    <p style="text-align: center; color: #999;">Aucun destinataire ajouté</p>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="manualSubject">Sujet</label>
+                                <input type="text" id="manualSubject" placeholder="Ex: Information personnalisée">
+                            </div>
+                            <div class="form-group">
+                                <label for="manualMessage">Message</label>
+                                <textarea id="manualMessage" placeholder="Écrivez votre message personnalisé..." rows="6"></textarea>
+                            </div>
+                            
+                            <div class="manual-actions">
+                                <button class="send-manual-btn" onclick="sendManualEmails()">
+                                    <span>📧</span>
+                                    <span>Envoyer aux destinataires manuels</span>
+                                </button>
+                                <button class="clear-manual-btn" onclick="clearManualEmails()">
+                                    <span>🗑️</span>
+                                    <span>Vider la liste</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section Statistiques -->
+                <section class="content-section" id="stats-section">
+                    <div class="card">
+                        <h2>📈 Statistiques</h2>
+                        <div style="padding: 20px; text-align: center;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                                <div style="background: rgba(102, 126, 234, 0.1); padding: 20px; border-radius: 12px;">
+                                    <div style="font-size: 2em; margin-bottom: 10px;">👥</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: var(--primary);" id="statTotalContacts">0</div>
+                                    <div style="color: var(--text-medium);">Total Contacts</div>
+                                </div>
+                                <div style="background: rgba(46, 213, 115, 0.1); padding: 20px; border-radius: 12px;">
+                                    <div style="font-size: 2em; margin-bottom: 10px;">✅</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: var(--success);" id="statSentEmails">0</div>
+                                    <div style="color: var(--text-medium);">Emails Envoyés</div>
+                                </div>
+                                <div style="background: rgba(255, 167, 38, 0.1); padding: 20px; border-radius: 12px;">
+                                    <div style="font-size: 2em; margin-bottom: 10px;">⏳</div>
+                                    <div style="font-size: 1.5em; font-weight: bold; color: var(--warning);" id="statPendingEmails">0</div>
+                                    <div style="color: var(--text-medium);">En Attente</div>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-medium);">Les statistiques se mettent à jour automatiquement lors de vos actions.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Alertes globales -->
+                <div id="alert" class="alert"></div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let importedContacts = [];
+        let manualEmails = []; // Stocker les emails manuels
+        let isLoadingContacts = false; // Éviter les chargements multiples
+        
+        // Gestion de l'importation de fichier
+        document.getElementById('importFile').addEventListener('change', handleFileImport);
+        
+        // ===== NAVIGATION ENTRE SECTIONS =====
+        
+        // Gérer la navigation        // Initialiser la navigation
+        document.addEventListener('DOMContentLoaded', async () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('.content-section');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    
+                    const targetSection = link.getAttribute('data-section');
+                    if (!targetSection) return;
+                    
+                    // Mettre à jour les liens actifs
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    // Afficher la section correspondante
+                    await showSection(targetSection);
+                });
+            });
+            
+            // Initialiser les statistiques
+            await updateStatistics();
+        });
+        
+        // Afficher une section spécifique
+        async function showSection(sectionName) {
+            // Masquer toutes les sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Masquer tous les contenus de statistiques
+            document.querySelectorAll('.stats-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Afficher la section demandée
+            const targetSection = document.getElementById(sectionName + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
+            
+            // Mettre à jour les données spécifiques à la section
+            if (sectionName === 'contacts') {
+                // Ne recharger les contacts que s'ils ne sont pas déjà chargés
+                if (importedContacts.length === 0) {
+                    await loadContacts();
+                }
+            } else if (sectionName === 'stats') {
+                await updateStatistics();
+            }
+            
+            await updateNavBadges();
+        }
+        
+        // Mettre à jour les badges de navigation avec les vraies statistiques
+        async function updateNavBadges() {
+            const importBadge = document.getElementById('importBadge');
+            const contactBadge = document.getElementById('contactBadge');
+            
+            try {
+                // Récupérer les vraies statistiques depuis l'API
+                const res = await apiFetch('/api/dashboard-stats');
+                const data = await res.json();
+                
+                if (data.success && data.stats) {
+                    const totalSent = data.stats.totalSent || 0;
+                    const totalOpened = data.stats.totalOpened || 0;
+                    
+                    // Mettre à jour le badge d'importation avec le nombre total d'envois
+                    if (importBadge) {
+                        importBadge.textContent = totalSent > 0 ? totalSent.toString() : '0';
+                    }
+                    
+                    // Mettre à jour le badge de contacts avec le nombre d'ouvertures
+                    if (contactBadge) {
+                        contactBadge.textContent = totalOpened > 0 ? totalOpened.toString() : '0';
+                    }
+                } else {
+                    // Fallback sur les contacts importés si l'API ne répond pas
+                    if (importBadge) {
+                        importBadge.textContent = importedContacts.length > 0 ? importedContacts.length : '0';
+                    }
+                    if (contactBadge) {
+                        contactBadge.textContent = importedContacts.length > 0 ? importedContacts.length : '0';
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour badges:', error);
+                // Fallback sur les contacts importés en cas d'erreur
+                if (importBadge) {
+                    importBadge.textContent = importedContacts.length > 0 ? importedContacts.length : '0';
+                }
+                if (contactBadge) {
+                    contactBadge.textContent = importedContacts.length > 0 ? importedContacts.length : '0';
+                }
+            }
+        }
+        
+        // Mettre à jour les statistiques
+        async function updateStatistics() {
+            const totalContacts = importedContacts.length;
+            const sentEmails = importedContacts.filter(c => c.sent).length;
+            const pendingEmails = totalContacts - sentEmails;
+            
+            const statTotalContacts = document.getElementById('statTotalContacts');
+            const statSentEmails = document.getElementById('statSentEmails');
+            const statPendingEmails = document.getElementById('statPendingEmails');
+            
+            if (statTotalContacts) statTotalContacts.textContent = totalContacts;
+            if (statSentEmails) statSentEmails.textContent = sentEmails;
+            if (statPendingEmails) statPendingEmails.textContent = pendingEmails;
+            
+            await updateNavBadges();
+        }
+        
+        // ===== FIN NAVIGATION =====
+        
+        // ===== FONCTIONS POUR L'ENVOI MANUEL =====
+        
+        // Ajouter une ligne d'entrée manuelle
+        function addManualRow() {
+            const container = document.getElementById('manualInputs');
+            const row = document.createElement('div');
+            row.className = 'input-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Organisation" class="manual-org">
+                <input type="email" placeholder="Email" class="manual-email">
+                <button class="remove-btn" onclick="removeManualRow(this)">×</button>
+            `;
+            container.appendChild(row);
+        }
+        
+        // Supprimer une ligne d'entrée manuelle
+        function removeManualRow(button) {
+            const row = button.parentElement;
+            row.remove();
+            updateManualEmailsList();
+        }
+        
+        // Charger les destinataires manuels depuis le serveur
+        async function loadManualRecipients() {
+            try {
+                const res = await apiFetch('/api/manual-recipients');
+                const data = await res.json();
+                
+                if (data.success) {
+                    manualEmails = data.recipients || [];
+                    console.log(`📂 ${manualEmails.length} destinataires manuels chargés depuis le serveur`);
+                    
+                    // Mettre à jour l'affichage
+                    const container = document.getElementById('manualInputs');
+                    if (manualEmails.length === 0) {
+                        container.innerHTML = `
+                            <div class="input-row">
+                                <input type="text" placeholder="Organisation" class="manual-org">
+                                <input type="email" placeholder="Email" class="manual-email">
+                                <button class="remove-btn" onclick="removeManualRow(this)">×</button>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = manualEmails.map(recipient => `
+                            <div class="input-row">
+                                <input type="text" placeholder="Organisation" class="manual-org" value="${recipient.organisation || ''}">
+                                <input type="email" placeholder="Email" class="manual-email" value="${recipient.email}">
+                                <button class="remove-btn" onclick="removeManualRow(this)">×</button>
+                            </div>
+                        `).join('');
+                    }
+                    
+                    updateManualEmailsList();
+                }
+            } catch (error) {
+                console.error('Erreur chargement destinataires manuels:', error);
+            }
+        }
+        
+        // Sauvegarder les destinataires manuels sur le serveur
+        async function saveManualRecipients() {
+            try {
+                const res = await apiFetch('/api/manual-recipients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipients: manualEmails })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    console.log(`💾 ${manualEmails.length} destinataires manuels sauvegardés sur le serveur`);
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde destinataires manuels:', error);
+            }
+        }
+        
+        // Mettre à jour la liste des emails manuels
+        function updateManualEmailsList() {
+            manualEmails = [];
+            const rows = document.querySelectorAll('#manualInputs .input-row');
+            
+            rows.forEach(row => {
+                const org = row.querySelector('.manual-org').value.trim();
+                const email = row.querySelector('.manual-email').value.trim();
+                
+                if (email) {
+                    manualEmails.push({ organisation: org, email });
+                }
+            });
+            
+            // Sauvegarder automatiquement après chaque modification
+            saveManualRecipients();
+        }
+        
+        // Supprimer un email manuel spécifique
+        function removeManualEmail(index) {
+            manualEmails.splice(index, 1);
+            
+            // Reconstruire les champs d'entrée
+            const container = document.getElementById('manualInputs');
+            container.innerHTML = '';
+            
+            manualEmails.forEach(contact => {
+                const row = document.createElement('div');
+                row.className = 'input-row';
+                row.innerHTML = `
+                    <input type="text" placeholder="Organisation" class="manual-org" value="${contact.organisation}">
+                    <input type="email" placeholder="Email" class="manual-email" value="${contact.email}">
+                    <button class="remove-btn" onclick="removeManualRow(this)">×</button>
+                `;
+                container.appendChild(row);
+            });
+            
+            // Ajouter une ligne vide si nécessaire
+            if (container.children.length === 0) {
+                addManualRow();
+            }
+            
+            updateManualEmailsList();
+        }
+        
+        // Vider tous les emails manuels
+        async function clearManualEmails() {
+            const confirmed = await showConfirmModal({
+                title: '🗑️ Vidage des destinataires',
+                emailsToSend: manualEmails.length,
+                totalContacts: manualEmails.length,
+                pendingContacts: manualEmails.length,
+                subject: 'Tous les destinataires manuels seront supprimés'
+            });
+            if (!confirmed) return;
+            
+            try {
+                await apiFetch('/api/manual-recipients', { method: 'DELETE' });
+                
+                manualEmails = [];
+                const container = document.getElementById('manualInputs');
+                container.innerHTML = `
+                    <div class="input-row">
+                        <input type="text" placeholder="Organisation" class="manual-org">
+                        <input type="email" placeholder="Email" class="manual-email">
+                        <button class="remove-btn" onclick="removeManualRow(this)">×</button>
+                    </div>
+                `;
+                updateManualEmailsList();
+                showAlert('✅ Liste des destinataires vidée', 'success');
+            } catch (error) {
+                showAlert('❌ Erreur lors de la suppression', 'error');
+            }
+        }
+        
+        // Envoyer les emails manuels
+        async function sendManualEmails() {
+            updateManualEmailsList(); // Mettre à jour la liste avant envoi
+            
+            if (manualEmails.length === 0) {
+                showAlert('❌ Aucun destinataire à envoyer', 'error');
+                return;
+            }
+            
+            const subject = document.getElementById('manualSubject').value.trim();
+            const message = document.getElementById('manualMessage').value.trim();
+            
+            if (!subject || !message) {
+                showAlert('❌ Veuillez remplir le sujet et le message', 'error');
+                return;
+            }
+            
+            // Afficher le popup de confirmation
+            const confirmed = await showConfirmModal({
+                title: '📧 Envoi manuel d\'emails',
+                emailsToSend: manualEmails.length,
+                totalContacts: manualEmails.length,
+                pendingContacts: manualEmails.length,
+                subject: subject
+            });
+            
+            if (!confirmed) return;
+            
+            showAlert('⏳ Envoi des emails manuels en cours...', 'success');
+            
+            try {
+                const res = await apiFetch('/api/send-manual-emails', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        subject, 
+                        message, 
+                        contacts: manualEmails 
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showAlert(`✅ ${data.sent} emails envoyés avec succès!`, 'success');
+                    // Vider les champs après envoi réussi
+                    document.getElementById('manualSubject').value = '';
+                    document.getElementById('manualMessage').value = '';
+                    // Garder les destinataires pour pouvoir réutiliser
+                    saveManualRecipients(); // Sauvegarder la liste actuelle
+                    
+                    // Mettre à jour les badges avec les nouvelles statistiques
+                    await updateNavBadges();
+                    
+                    // Mettre à jour le widget de suivi s'il existe
+                    if (typeof loadEmailTracking === 'function') {
+                        loadEmailTracking();
+                    }
+                } else {
+                    showAlert('❌ Erreur lors de l\'envoi', 'error');
+                }
+            } catch (e) {
+                console.error('❌ Erreur envoi manuel:', e);
+                showAlert('❌ Erreur: ' + e.message, 'error');
+            }
+        }
+        
+        // Écouter les changements dans les champs manuels
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('manual-org') || e.target.classList.contains('manual-email')) {
+                updateManualEmailsList();
+            }
+        });
+        
+        // ===== FIN FONCTIONS ENVOI MANUEL =====
+        
+        async function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const importStatus = document.getElementById('importStatus');
+            importStatus.innerHTML = '<p style="color: #FFA502;">⏳ Lecture du fichier en cours...</p>';
+            
+            try {
+                const contacts = await parseFile(file);
+                console.log(`📤 ENVOI AU BACKEND: ${contacts.length} contacts à importer`);
+                console.log('📋 Premier contact envoyé:', contacts[0]);
+                
+                // Envoyer les contacts au backend
+                const response = await apiFetch('/api/import-contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contacts })
+                });
+                
+                const result = await response.json();
+                console.log('📥 RÉPONSE BACKEND:', result);
+                
+                if (result.success) {
+                    importStatus.innerHTML = `<p style="color: #2ED573;">✅ ${contacts.length} contacts importés avec succès!</p>`;
+                    console.log('✅ Importation réussie, appel de loadContacts()...');
+                    await loadContacts();
+                    await updateNavBadges(); // Mettre à jour les badges avec les nouveaux chiffres
+                    showAlert(`✅ ${contacts.length} contacts importés`, 'success');
+                } else {
+                    importStatus.innerHTML = '<p style="color: #FF4757;">❌ Erreur lors de l\'importation</p>';
+                    showAlert('❌ Erreur lors de l\'importation', 'error');
+                }
+            } catch (error) {
+                console.error('Erreur import:', error);
+                importStatus.innerHTML = '<p style="color: #FF4757;">❌ Erreur: ' + error.message + '</p>';
+                showAlert('❌ Erreur: ' + error.message, 'error');
+            }
+            
+            // Réinitialiser le input file
+            event.target.value = '';
+        }
+        
+        // Parser le fichier (CSV ou Excel)
+        async function parseFile(file) {
+            return new Promise((resolve, reject) => {
+                let rawData = null; // Déclarer rawData ici pour qu'il soit accessible partout
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        let data = [];
+                        console.log('📁 Parsing du fichier:', file.name, file.type);
+                        
+                        if (file.name.endsWith('.csv')) {
+                            // Parser CSV avec PapaParse pour plus de robustesse
+                            Papa.parse(e.target.result, {
+                                header: false,
+                                skipEmptyLines: true,
+                                complete: function(results) {
+                                    console.log('📊 CSV brut:', results.data);
+                                    
+                                    // DIAGNOSTIC COMPLET DU CSV
+                                    console.log('🔍 DIAGNOSTIC COMPLET DU FICHIER CSV');
+                                    console.log('='.repeat(70));
+                                    console.log(`📁 Fichier: ${file.name}`);
+                                    console.log(`📏 Taille: ${results.data.length} lignes`);
+                                    console.log(`📊 Structure: ${results.data[0] ? results.data[0].length : 0} colonnes`);
+                                    
+                                    // Analyser chaque ligne en détail
+                                    console.log('\n📍 ANALYSE DÉTAILLÉE DES LIGNES:');
+                                    results.data.forEach((row, index) => {
+                                        if (index < 10) { // Premier 10 lignes seulement
+                                            console.log(`\n--- LIGNE ${index + 1} ---`);
+                                            console.log(`Brut:`, JSON.stringify(row));
+                                            
+                                            row.forEach((cell, colIndex) => {
+                                                const cellStr = String(cell || '').trim();
+                                                console.log(`  Colonne ${colIndex}: "${cellStr}"`);
+                                                console.log(`    → Longueur: ${cellStr.length}`);
+                                                console.log(`    → Contient @: ${cellStr.includes('@')}`);
+                                                
+                                                // Test email
+                                                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                                const isEmail = emailRegex.test(cellStr);
+                                                console.log(`    → Est un email: ${isEmail}`);
+                                                
+                                                if (isEmail) {
+                                                    console.log(`    ✅ EMAIL VALIDE: "${cellStr}"`);
+                                                } else if (cellStr.includes('@')) {
+                                                    console.log(`    ⚠️ CONTIENT @ MAIS INVALIDE: "${cellStr}"`);
+                                                }
+                                            });
+                                        }
+                                    });
+                                    
+                                    // Compter les emails dans tout le fichier
+                                    let totalEmails = 0;
+                                    let totalOrgs = 0;
+                                    let emailExamples = [];
+                                    let orgExamples = [];
+                                    
+                                    results.data.forEach((row, index) => {
+                                        row.forEach((cell, colIndex) => {
+                                            const cellStr = String(cell || '').trim();
+                                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                            
+                                            if (emailRegex.test(cellStr)) {
+                                                totalEmails++;
+                                                if (emailExamples.length < 5) {
+                                                    emailExamples.push(cellStr);
+                                                }
+                                            } else if (cellStr.length > 2 && !cellStr.includes('@')) {
+                                                totalOrgs++;
+                                                if (orgExamples.length < 5) {
+                                                    orgExamples.push(cellStr);
+                                                }
+                                            }
+                                        });
+                                    });
+                                    
+                                    console.log('\n📊 STATISTIQUES GLOBALES:');
+                                    console.log(`→ Total d'emails valides: ${totalEmails}`);
+                                    console.log(`→ Total d'organisations: ${totalOrgs}`);
+                                    console.log(`→ Exemples d'emails:`, emailExamples);
+                                    console.log(`→ Exemples d'organisations:`, orgExamples);
+                                    
+                                    if (totalEmails === 0) {
+                                        console.log('\n❌ PROBLÈME: Aucun email valide trouvé!');
+                                        console.log('🔍 Causes possibles:');
+                                        console.log('   • Format incorrect (ex: "email@domaine" sans .extension)');
+                                        console.log('   • Espaces en début/fin');
+                                        console.log('   • Caractères spéciaux invalides');
+                                        console.log('   • Mauvaise colonne (organisations à la place des emails)');
+                                    }
+                                    
+                                    console.log('\n' + '='.repeat(70));
+                                    
+                                    data = results.data.map(row => {
+                                        // Nettoyer les données
+                                        const cols = row.map(col => String(col || '').trim().replace(/"/g, ''));
+                                        return {
+                                            organisation: cols[0] || '',
+                                            email: cols[1] || ''
+                                        };
+                                    }).filter(item => item.organisation || item.email); // Garder les lignes avec au moins une donnée
+                                    
+                                    console.log('📋 CSV traité:', data);
+                                    resolve(data);
+                                },
+                                error: function(error) {
+                                    console.error('❌ Erreur PapaParse:', error);
+                                    reject(error);
+                                }
+                            });
+                            return; // Sortir de la fonction pour PapaParse
+                        } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                            // Parser Excel avec XLSX library
+                            console.log('📊 Lecture Excel...');
+                            
+                            try {
+                                const workbook = XLSX.read(e.target.result, { 
+                                    type: 'binary',
+                                    cellDates: false,
+                                    cellStyles: false
+                                });
+                                
+                                console.log('📑 Feuilles trouvées:', workbook.SheetNames);
+                                
+                                // Vérifier qu'il y a bien des feuilles
+                                if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+                                    console.error('❌ Erreur: Le fichier Excel ne contient aucune feuille');
+                                    reject(new Error('Le fichier Excel ne contient aucune feuille de calcul'));
+                                    return;
+                                }
+                                
+                                // Sélectionner la première feuille existante
+                                const firstSheetName = workbook.SheetNames[0];
+                                const firstSheet = workbook.Sheets[firstSheetName];
+                                
+                                console.log(`📊 Feuille sélectionnée: "${firstSheetName}"`);
+                                console.log(`📊 Feuille analysée: ${firstSheet.SheetName || 'Nom non défini'}`);
+                                
+                                // Vérifier que la feuille existe bien
+                                if (!firstSheet) {
+                                    console.error(`❌ Erreur: Impossible d'accéder à la feuille "${firstSheetName}"`);
+                                    reject(new Error(`Impossible d'accéder à la feuille "${firstSheetName}"`));
+                                    return;
+                                }
+                                
+                                // Vérifier si la feuille a une plage de données définie
+                                if (!firstSheet['!ref']) {
+                                    console.error('❌ Erreur: La feuille Excel n\'a pas de plage de données définie');
+                                    console.log('🔍 Causes possibles:');
+                                    console.log('   • Fichier Excel vide');
+                                    console.log('   • Feuille de calcul vide');
+                                    console.log('   • Format Excel non standard');
+                                    console.log('   • Fichier corrompu');
+                                    
+                                    // Essayer de trouver des données manuellement
+                                    console.log('\n🔍 Recherche manuelle des données...');
+                                    let foundData = false;
+                                    let cellCount = 0;
+                                    
+                                    for (let cellAddress in firstSheet) {
+                                        if (cellAddress[0] !== '!' && cellAddress !== '!ref') {
+                                            const cell = firstSheet[cellAddress];
+                                            if (cell && cell.v) {
+                                                console.log(`Cellule trouvée ${cellAddress}: "${cell.v}"`);
+                                                foundData = true;
+                                                cellCount++;
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (!foundData) {
+                                        console.log('❌ Aucune donnée trouvée dans la feuille Excel');
+                                        reject(new Error('Le fichier Excel est vide ou ne contient aucune donnée lisible'));
+                                        return;
+                                    } else {
+                                        console.log(`✅ ${cellCount} cellules avec données trouvées manuellement`);
+                                        console.log('⚠️ Mais la structure n\'est pas standard, tentative de conversion...');
+                                    }
+                                }
+                                
+                                const dataRange = firstSheet['!ref'] ? XLSX.utils.decode_range(firstSheet['!ref']) : {s: {c: 0, r: 0}, e: {c: 0, r: 0}};
+                                
+                                console.log('📏 Plage de données:', dataRange);
+                                
+                                // DIAGNOSTIC EXCEL ULTRA-SPECIFIQUE
+                                console.log('🔍 DIAGNOSTIC EXCEL ULTRA-SPECIFIQUE');
+                                console.log('='.repeat(80));
+                                console.log(`📁 Fichier Excel: ${file.name}`);
+                                console.log(`📊 Feuille analysée: ${firstSheetName}`);
+                                
+                                // Afficher la plage de données en toute sécurité
+                                let rangeDisplay = 'Non définie';
+                                if (firstSheet['!ref']) {
+                                    try {
+                                        rangeDisplay = XLSX.utils.encode_range(firstSheet['!ref']);
+                                    } catch (error) {
+                                        console.warn('⚠️ Erreur encodage plage:', error.message);
+                                        rangeDisplay = 'Erreur encodage';
+                                    }
+                                }
+                                console.log(`📏 Plage de données: ${rangeDisplay}`);
+                                
+                                // Analyser la structure exacte de la feuille
+                                console.log('\n📋 STRUCTURE EXACTE DE LA FEUILLE:');
+                                console.log(`→ Plage: ${dataRange.s.c}:${dataRange.s.r} à ${dataRange.e.c}:${dataRange.e.r}`);
+                                console.log(`→ Colonnes: ${dataRange.e.c + 1}`);
+                                console.log(`→ Lignes: ${dataRange.e.r + 1}`);
+                                
+                                // Analyser les cellules individuellement
+                                console.log('\n🔍 ANALYSE CELLULE PAR CELLULE (premières 5 lignes):');
+                                for (let row = 0; row <= Math.min(4, dataRange.e.r); row++) {
+                                    console.log(`\n--- LIGNE EXCEL ${row + 1} ---`);
+                                    for (let col = 0; col <= Math.min(3, dataRange.e.c); col++) {
+                                        const cellAddress = XLSX.utils.encode_cell({r: row, c: col});
+                                        const cell = firstSheet[cellAddress];
+                                        
+                                        console.log(`Cellule ${cellAddress}:`);
+                                        if (cell) {
+                                            const cellValue = String(cell.v || '').trim();
+                                            console.log(`  → Valeur brute: "${cellValue}"`);
+                                            console.log(`  → Type Excel: ${cell.t}`);
+                                            console.log(`  → Format: ${cell.z || 'non défini'}`);
+                                            console.log(`  → Longueur: ${cellValue.length}`);
+                                            console.log(`  → Contient @: ${cellValue.includes('@')}`);
+                                            
+                                            // Test email
+                                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                            const isEmail = emailRegex.test(cellValue);
+                                            console.log(`  → Est un email: ${isEmail}`);
+                                            
+                                            if (isEmail) {
+                                                console.log(`  ✅ EMAIL VALIDE TROUVÉ: "${cellValue}"`);
+                                            } else if (cellValue.includes('@')) {
+                                                console.log(`  ⚠️ CONTIENT @ MAIS INVALIDE: "${cellValue}"`);
+                                            } else if (cellValue.length > 2) {
+                                                console.log(`  🏢 POURRAIT ÊTRE UNE ENTREPRISE: "${cellValue}"`);
+                                            }
+                                        } else {
+                                            console.log(`  → Cellule vide`);
+                                        }
+                                    }
+                                }
+                                
+                                // Convertir en array brut pour analyse
+                                rawData = XLSX.utils.sheet_to_json(firstSheet, { 
+                                    header: 1,
+                                    defval: '',
+                                    blankrows: false
+                                });
+                                
+                                console.log('\n📊 CONVERSION EN ARRAY:');
+                                console.log(`→ Nombre de lignes converties: ${rawData.length}`);
+                                console.log(`→ Colonnes par ligne: ${rawData[0] ? rawData[0].length : 0}`);
+                                
+                                // DÉTECTION AUTOMATIQUE DE LA STRUCTURE (pour tous les fichiers)
+                                console.log('\n🎯 DÉTECTION AUTOMATIQUE DE LA STRUCTURE EXCEL');
+                                console.log(`📁 Nom du fichier: "${file.name}"`);
+                                console.log(`📊 Feuille analysée: "${firstSheetName}"`);
+                                
+                                let orgCol = 0;
+                                let emailCol = 1;
+                                
+                                // Analyser la structure pour trouver les bonnes colonnes
+                                if (rawData.length > 3) {
+                                    const headerRow = rawData[2] || []; // Ligne 3 (en-têtes)
+                                    const firstDataRow = rawData[3] || []; // Ligne 4 (premières données)
+                                    
+                                    console.log('📋 En-têtes trouvés (ligne 3):', headerRow);
+                                    console.log('📍 Premières données (ligne 4):', firstDataRow);
+                                    
+                                    // DÉTECTION AUTOMATIQUE BASÉE SUR LA STRUCTURE
+                                    console.log('🔍 Détection automatique de la structure...');
+                                    
+                                    // Analyser chaque en-tête en détail
+                                    console.log('\n🔍 Analyse détaillée des en-têtes:');
+                                    headerRow.forEach((header, index) => {
+                                        console.log(`  Colonne ${index}: "${header}"`);
+                                        console.log(`    → Contient ORGANISATION: ${header && header.toString().includes('ORGANISATION')}`);
+                                        console.log(`    → Contient NOM: ${header && header.toString().includes('NOM')}`);
+                                        console.log(`    → Contient E-MAIL: ${header && header.toString().includes('E-MAIL')}`);
+                                        console.log(`    → Contient EMAIL: ${header && header.toString().includes('EMAIL')}`);
+                                        console.log(`    → Contient MAIL: ${header && header.toString().includes('MAIL')}`);
+                                        console.log(`    → Contient e-mail: ${header && header.toString().toLowerCase().includes('e-mail')}`);
+                                    });
+                                    
+                                    // Vérifier si ça ressemble à la structure expo (feuille "Général")
+                                    const hasEmailHeader = headerRow.some(col => 
+                                        col && (col.toString().includes('E-MAIL') || col.toString().includes('EMAIL') || col.toString().includes('MAIL') || col.toString().toLowerCase().includes('e-mail'))
+                                    );
+                                    const hasOrgHeader = headerRow.some(col => 
+                                        col && (col.toString().includes('ORGANISATION') || col.toString().includes('NOM'))
+                                    );
+                                    
+                                    console.log(`\n📊 Résultats de la détection:`);
+                                    console.log(`→ Has Email Header: ${hasEmailHeader}`);
+                                    console.log(`→ Has Org Header: ${hasOrgHeader}`);
+                                    
+                                    if (hasEmailHeader && hasOrgHeader) {
+                                        console.log('🎯 Structure expo détectée (feuille Général)...');
+                                        // Structure: [secteur, organisation, contact, titre, EMAIL, telephone, noms, sources]
+                                        orgCol = headerRow.findIndex(col => 
+                                            col && (col.toString().includes('ORGANISATION') || col.toString().includes('NOM'))
+                                        );
+                                        emailCol = headerRow.findIndex(col => 
+                                            col && (col.toString().includes('E-MAIL') || col.toString().includes('EMAIL') || col.toString().includes('MAIL') || col.toString().toLowerCase().includes('e-mail'))
+                                        );
+                                        
+                                        console.log(`🔍 Recherche colonnes - Organisation trouvé à: ${orgCol}, Email trouvé à: ${emailCol}`);
+                                        
+                                        // Si pas trouvé, utiliser les positions fixes
+                                        if (orgCol === -1 || emailCol === -1) {
+                                            console.log('⚠️ Colonnes non trouvées dans les en-têtes, utilisation positions fixes...');
+                                            orgCol = 1; // NOM DE L'ORGANISATION
+                                            emailCol = 4; // E-MAIL
+                                            console.log(`🎯 Positions fixes utilisées: Organisation=${orgCol}, Email=${emailCol}`);
+                                        }
+                                    }
+                                    // Vérifier si ça ressemble à la structure expo (feuille "Feuil1")
+                                    else if (headerRow.length >= 3 && firstDataRow.length >= 3) {
+                                        console.log('\n🔍 Test pour structure Feuil1...');
+                                        const thirdColHasEmail = firstDataRow[2] && String(firstDataRow[2]).includes('@');
+                                        const secondColHasOrg = firstDataRow[1] && String(firstDataRow[1]).length > 3;
+                                        
+                                        console.log(`→ Troisième colonne a email: ${thirdColHasEmail}`);
+                                        console.log(`→ Deuxième colonne a organisation: ${secondColHasOrg}`);
+                                        console.log(`→ Contenu troisième colonne: "${firstDataRow[2]}"`);
+                                        console.log(`→ Contenu deuxième colonne: "${firstDataRow[1]}"`);
+                                        
+                                        if (thirdColHasEmail && secondColHasOrg) {
+                                            console.log('🎯 Structure expo détectée (feuille Feuil1)...');
+                                            // Structure: [vide, organisation, EMAIL, telephone, adresse]
+                                            orgCol = 1; // Organisation en colonne 2
+                                            emailCol = 2; // Email en colonne 3
+                                            console.log(`🎯 Feuil1 positions fixes: Organisation=${orgCol}, Email=${emailCol}`);
+                                        } else {
+                                            console.log('❌ Structure expo non détectée, utilisation colonnes par défaut (0,1)');
+                                        }
+                                    } else {
+                                        console.log('❌ Structure expo non détectée, utilisation colonnes par défaut (0,1)');
+                                    }
+                                } else {
+                                    console.log('❌ Fichier trop court, utilisation colonnes par défaut (0,1)');
+                                }
+                                
+                                console.log(`🎯 Colonnes finales détectées: Organisation=${orgCol}, Email=${emailCol}`);
+                                
+                                // SOLUTION DE SECOURS: Scanner toutes les colonnes pour trouver les emails
+                                console.log('\n🚨 SOLUTION DE SECOURS: Scan complet des colonnes...');
+                                let foundEmails = false;
+                                let bestEmailCol = -1;
+                                let bestOrgCol = -1;
+                                let maxEmails = 0;
+                                
+                                // DIAGNOSTIC ULTRA-PROFOND: Montrer le contenu exact des cellules
+                                console.log('\n🔍 DIAGNOSTIC ULTRA-PROFOND - Contenu exact des cellules:');
+                                console.log('='.repeat(80));
+                                
+                                rawData.slice(0, 10).forEach((row, rowIndex) => {
+                                    console.log(`\n--- LIGNE ${rowIndex + 1} ---`);
+                                    row.forEach((cell, colIndex) => {
+                                        const cellStr = String(cell || '').trim();
+                                        console.log(`  [${rowIndex + 1},${colIndex}] "${cellStr}"`);
+                                        console.log(`    → Longueur: ${cellStr.length}`);
+                                        console.log(`    → Type: ${typeof cell}`);
+                                        console.log(`    → Contient @: ${cellStr.includes('@')}`);
+                                        console.log(`    → Est email valide: ${/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellStr)}`);
+                                        
+                                        if (cellStr.includes('@')) {
+                                            console.log(`    ✅ CONTIENT UN @: "${cellStr}"`);
+                                        }
+                                    });
+                                });
+                                
+                                // Scanner chaque colonne pour voir où sont les emails
+                                for (let col = 0; col < 10; col++) {
+                                    let emailCount = 0;
+                                    let orgCount = 0;
+                                    let emailExamples = [];
+                                    
+                                    rawData.slice(0, 50).forEach(row => {
+                                        const cell = String(row[col] || '').trim();
+                                        if (cell.includes('@') && cell.length > 5) {
+                                            emailCount++;
+                                            if (emailExamples.length < 3) {
+                                                emailExamples.push(cell);
+                                            }
+                                        } else if (cell.length > 3 && !cell.includes('@')) {
+                                            orgCount++;
+                                        }
+                                    });
+                                    
+                                    console.log(`📊 Colonne ${col}: ${emailCount} emails, ${orgCount} organisations`);
+                                    if (emailExamples.length > 0) {
+                                        console.log(`   Exemples d'emails trouvés:`, emailExamples);
+                                    }
+                                    
+                                    if (emailCount > maxEmails) {
+                                        maxEmails = emailCount;
+                                        bestEmailCol = col;
+                                        foundEmails = true;
+                                    }
+                                }
+                                
+                                if (foundEmails && maxEmails > 0) {
+                                    console.log(`🎯 SOLUTION DE SECOURS: ${maxEmails} emails trouvés dans la colonne ${bestEmailCol} !`);
+                                    emailCol = bestEmailCol;
+                                    orgCol = (bestEmailCol === 1) ? 0 : 1; // Choisir une autre colonne pour l'organisation
+                                    console.log(`🔄 Colonnes corrigées: Organisation=${orgCol}, Email=${emailCol}`);
+                                } else {
+                                    console.log('❌ SOLUTION DE SECOURS: Aucun email trouvé dans aucune colonne');
+                                    console.log('\n🚨 ANALYSE CRITIQUE:');
+                                    console.log('→ Le fichier ne contient aucun symbole @ dans les 50 premières lignes');
+                                    console.log('→ Possible que les emails soient plus loin dans le fichier');
+                                    console.log('→ Possible que les emails soient dans un format non reconnu');
+                                    
+                                    // SOLUTION DE FORCE BRUTE: Scanner tout le fichier
+                                    console.log('\n🔥 SOLUTION DE FORCE BRUTE: Scan complet du fichier...');
+                                    let allEmails = [];
+                                    let allOrgs = [];
+                                    let emailPositions = [];
+                                    
+                                    // Scanner TOUTES les cellules du fichier
+                                    rawData.forEach((row, rowIndex) => {
+                                        row.forEach((cell, colIndex) => {
+                                            const cellStr = String(cell || '').trim();
+                                            
+                                            // Chercher les emails dans TOUTES les cellules
+                                            if (cellStr.includes('@') && cellStr.length > 5 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellStr)) {
+                                                allEmails.push({
+                                                    email: cellStr,
+                                                    row: rowIndex,
+                                                    col: colIndex
+                                                });
+                                                emailPositions.push({row: rowIndex, col: colIndex});
+                                                
+                                                if (allEmails.length <= 5) {
+                                                    console.log(`✅ EMAIL TROUVÉ en [${rowIndex},${colIndex}]: "${cellStr}"`);
+                                                }
+                                            }
+                                            
+                                            // Chercher les organisations (texte long sans @)
+                                            if (cellStr.length > 10 && !cellStr.includes('@') && !cellStr.match(/^\d+$/)) {
+                                                allOrgs.push({
+                                                    org: cellStr,
+                                                    row: rowIndex,
+                                                    col: colIndex
+                                                });
+                                            }
+                                        });
+                                    });
+                                    
+                                    console.log(`\n🔥 RÉSULTATS FORCE BRUTE:`);
+                                    console.log(`→ Total emails trouvés: ${allEmails.length}`);
+                                    console.log(`→ Total organisations trouvées: ${allOrgs.length}`);
+                                    
+                                    if (allEmails.length > 0) {
+                                        console.log(`\n🎯 FORCE BRUTE: ${allEmails.length} emails trouvés dans le fichier !`);
+                                        
+                                        // Analyser les positions des emails pour trouver la meilleure colonne
+                                        const colCounts = {};
+                                        emailPositions.forEach(pos => {
+                                            colCounts[pos.col] = (colCounts[pos.col] || 0) + 1;
+                                        });
+                                        
+                                        let bestCol = -1;
+                                        let maxCount = 0;
+                                        for (const [col, count] of Object.entries(colCounts)) {
+                                            console.log(`→ Colonne ${col}: ${count} emails`);
+                                            if (count > maxCount) {
+                                                maxCount = count;
+                                                bestCol = parseInt(col);
+                                            }
+                                        }
+                                        
+                                        console.log(`🎯 Meilleure colonne email: ${bestCol} avec ${maxCount} emails`);
+                                        
+                                        // Choisir une colonne pour l'organisation (proche de la colonne email)
+                                        let orgCol = bestCol - 1;
+                                        if (orgCol < 0) orgCol = bestCol + 1;
+                                        
+                                        emailCol = bestCol;
+                                        foundEmails = true;
+                                        
+                                        console.log(`🔄 Colonnes force brute: Organisation=${orgCol}, Email=${emailCol}`);
+                                        
+                                        // Recréer les données avec les bonnes colonnes
+                                        data = rawData.map((row, index) => {
+                                            const organisation = String(row[orgCol] || '').trim();
+                                            const email = String(row[emailCol] || '').trim();
+                                            
+                                            if (index < 5) {
+                                                console.log(`🔄 Ligne ${index + 1} force brute:`, {
+                                                    organisation,
+                                                    email
+                                                });
+                                            }
+                                            
+                                            return { organisation, email };
+                                        }).filter(item => item.organisation || item.email);
+                                        
+                                        console.log(`🎯 Force brute: ${data.length} contacts créés`);
+                                    } else {
+                                        console.log('❌ FORCE BRUTE: Aucun email trouvé nulle part dans le fichier');
+                                        console.log('\n🚨 DIAGNOSTIC FINAL:');
+                                        console.log('→ Le fichier ne contient AUCUN email valide');
+                                        console.log('→ Vérifiez que votre fichier contient bien des adresses email');
+                                        console.log('→ Vérifiez le format des emails (exemple@domaine.com)');
+                                    }
+                                }
+                                
+                                // Utiliser les colonnes détectées
+                                console.log('\n🔄 UTILISATION DES COLONNES DÉTECTÉES:');
+                                console.log(`→ Organisation colonne: ${orgCol}`);
+                                console.log(`→ Email colonne: ${emailCol}`);
+                                
+                                // Vérifier si on a les bonnes colonnes
+                                if (rawData.length > 3) {
+                                    console.log('\n🔍 VÉRIFICATION DES COLONNES:');
+                                    const headerRow = rawData[2] || [];
+                                    const firstDataRow = rawData[3] || [];
+                                    
+                                    console.log('📋 En-têtes (ligne 3):', headerRow);
+                                    console.log('📍 Premières données (ligne 4):', firstDataRow);
+                                    
+                                    if (headerRow[orgCol]) {
+                                        console.log(`📊 Colonne Organisation (${orgCol}): "${headerRow[orgCol]}"`);
+                                    }
+                                    if (headerRow[emailCol]) {
+                                        console.log(`📊 Colonne Email (${emailCol}): "${headerRow[emailCol]}"`);
+                                    }
+                                    
+                                    // Vérifier si les colonnes sont inversées
+                                    const orgHeader = String(headerRow[orgCol] || '').toLowerCase();
+                                    const emailHeader = String(headerRow[emailCol] || '').toLowerCase();
+                                    
+                                    console.log(`\n🔍 Analyse des en-têtes:`);
+                                    console.log(`→ En-tête Organisation: "${orgHeader}"`);
+                                    console.log(`→ En-tête Email: "${emailHeader}"`);
+                                    
+                                    if (orgHeader.includes('email') || orgHeader.includes('mail')) {
+                                        console.log('❌ ERREUR: Les colonnes sont inversées ! Organisation contient "email"');
+                                        // Inverser les colonnes
+                                        const temp = orgCol;
+                                        orgCol = emailCol;
+                                        emailCol = temp;
+                                        console.log(`🔄 Colonnes inversées: Organisation=${orgCol}, Email=${emailCol}`);
+                                    }
+                                    
+                                    if (emailHeader.includes('organisation') || emailHeader.includes('nom')) {
+                                        console.log('❌ ERREUR: Les colonnes sont inversées ! Email contient "organisation"');
+                                        // Inverser les colonnes
+                                        const temp = orgCol;
+                                        orgCol = emailCol;
+                                        emailCol = temp;
+                                        console.log(`🔄 Colonnes inversées: Organisation=${orgCol}, Email=${emailCol}`);
+                                    }
+                                }
+                                
+                                data = rawData.map((row, index) => {
+                                    const organisation = String(row[orgCol] || '').trim();
+                                    const email = String(row[emailCol] || '').trim();
+                                    
+                                    // Debug des 10 premières lignes
+                                    if (index < 10) {
+                                        console.log(`🔄 Ligne ${index + 1} restructurée:`, {
+                                            organisation,
+                                            email,
+                                            originalRow: row
+                                        });
+                                    }
+                                    
+                                    return { organisation, email };
+                                }).filter(item => item.organisation || item.email);
+                                
+                                console.log('📋 Données après restructuration:', data.slice(0, 10));
+                                
+                                // Analyse statistique complète
+                                console.log('\n📈 ANALYSE STATISTIQUE COMPLÈTE:');
+                                let totalCells = 0;
+                                let nonEmptyCells = 0;
+                                let emailCells = 0;
+                                let potentialOrgCells = 0;
+                                let emptyCells = 0;
+                                
+                                rawData.forEach((row, rowIndex) => {
+                                    row.forEach((cell, colIndex) => {
+                                        totalCells++;
+                                        const cellStr = String(cell || '').trim();
+                                        
+                                        if (cellStr.length === 0) {
+                                            emptyCells++;
+                                        } else {
+                                            nonEmptyCells++;
+                                            
+                                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                            if (emailRegex.test(cellStr)) {
+                                                emailCells++;
+                                            } else if (cellStr.includes('@')) {
+                                                // Contient @ mais pas un email valide
+                                            } else if (cellStr.length > 2) {
+                                                potentialOrgCells++;
+                                            }
+                                        }
+                                    });
+                                });
+                                
+                                console.log(`→ Total cellules analysées: ${totalCells}`);
+                                console.log(`→ Cellules non vides: ${nonEmptyCells}`);
+                                console.log(`→ Cellules vides: ${emptyCells}`);
+                                console.log(`→ Emails valides: ${emailCells}`);
+                                console.log(`→ Entreprises potentielles: ${potentialOrgCells}`);
+                                console.log(`→ Pourcentage d'emails: ${((emailCells / totalCells) * 100).toFixed(2)}%`);
+                                console.log(`→ Pourcentage d'entreprises: ${((potentialOrgCells / totalCells) * 100).toFixed(2)}%`);
+                                
+                                if (emailCells === 0 && potentialOrgCells === 0) {
+                                    console.log('\n❌ PROBLÈME CRITIQUE: Aucune donnée exploitable trouvée!');
+                                    console.log('🔍 Causes possibles:');
+                                    console.log('   • Fichier vide ou protégé');
+                                    console.log('   • Données dans des formats non reconnus');
+                                    console.log('   • Feuille de calcul incorrecte');
+                                    console.log('   • Encodage des caractères');
+                                } else if (emailCells === 0) {
+                                    console.log('\n⚠️ PROBLÈME: Aucun email valide trouvé!');
+                                    console.log('🔍 Vérifiez le format des emails dans votre fichier Excel');
+                                } else {
+                                    console.log('\n✅ SUCCÈS: Données exploitables trouvées!');
+                                }
+                                
+                                console.log('\n' + '='.repeat(80));
+                                
+                                // MODE DÉBOGAGE EXTRÊME - Analyse caractère par caractère
+                                console.log('🔍 DÉBOGAGE EXTRÊME - CONTENU EXACT DU FICHIER');
+                                console.log('='.repeat(80));
+                                console.log('📋 STRUCTURE COMPLÈTE DU FICHIER:');
+                                console.log(`→ Nombre total de lignes: ${rawData.length}`);
+                                console.log(`→ Nombre de colonnes par ligne: ${rawData[0] ? rawData[0].length : 'inconnu'}`);
+                                
+                                // Analyser les 10 premières lignes en détail
+                                console.log('\n📍 ANALYSE DÉTAILLÉE (10 premières lignes):');
+                                rawData.slice(0, 10).forEach((row, index) => {
+                                    console.log(`\n--- LIGNE ${index + 1} ---`);
+                                    console.log(`Brut:`, JSON.stringify(row));
+                                    
+                                    row.forEach((cell, colIndex) => {
+                                        const cellStr = String(cell || '').trim();
+                                        console.log(`  Colonne ${colIndex}: "${cellStr}"`);
+                                        console.log(`    → Longueur: ${cellStr.length}`);
+                                        console.log(`    → Contient @: ${cellStr.includes('@')}`);
+                                        console.log(`    → Contient espace: ${cellStr.includes(' ')}`);
+                                        console.log(`    → Caractères spéciaux: ${/[^\w\s@.-]/.test(cellStr) ? 'OUI' : 'NON'}`);
+                                        
+                                        // Vérifier si ça ressemble à un email
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        const isEmail = emailRegex.test(cellStr);
+                                        console.log(`    → Est un email: ${isEmail}`);
+                                        
+                                        if (isEmail) {
+                                            console.log(`    ✅ EMAIL VALIDE TROUVÉ: "${cellStr}"`);
+                                        } else if (cellStr.includes('@')) {
+                                            console.log(`    ⚠️ CONTIENT @ MAIS INVALIDE: "${cellStr}"`);
+                                        }
+                                    });
+                                });
+                                
+                                // Chercher tous les emails dans tout le fichier
+                                console.log('\n🔍 RECHERCHE GLOBALE DES EMAILS:');
+                                let totalEmailsFound = 0;
+                                let allEmails = [];
+                                
+                                rawData.forEach((row, rowIndex) => {
+                                    row.forEach((cell, colIndex) => {
+                                        const cellStr = String(cell || '').trim();
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        
+                                        if (emailRegex.test(cellStr)) {
+                                            totalEmailsFound++;
+                                            allEmails.push({
+                                                ligne: rowIndex + 1,
+                                                colonne: colIndex,
+                                                email: cellStr
+                                            });
+                                            console.log(`✅ EMAIL TROUVÉ - Ligne ${rowIndex + 1}, Colonne ${colIndex}: "${cellStr}"`);
+                                        }
+                                    });
+                                });
+                                
+                                console.log(`\n📊 RÉSULTAT DE LA RECHERCHE:`);
+                                console.log(`→ Total d'emails valides trouvés: ${totalEmailsFound}`);
+                                console.log(`→ Pourcentage: ${((totalEmailsFound / rawData.length) * 100).toFixed(2)}%`);
+                                
+                                if (allEmails.length > 0) {
+                                    console.log(`→ Exemples d'emails trouvés:`, allEmails.slice(0, 5).map(e => e.email));
+                                } else {
+                                    console.log(`❌ AUCUN EMAIL VALIDE TROUVÉ DANS TOUT LE FICHIER!`);
+                                    
+                                    // Montrer ce qui contient @ mais n'est pas valide
+                                    console.log(`\n⚠️ CONTENANT @ MAIS INVALIDES:`);
+                                    let invalidEmails = 0;
+                                    rawData.slice(0, 20).forEach((row, rowIndex) => {
+                                        row.forEach((cell, colIndex) => {
+                                            const cellStr = String(cell || '').trim();
+                                            if (cellStr.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellStr)) {
+                                                invalidEmails++;
+                                                console.log(`   Ligne ${rowIndex + 1}, Colonne ${colIndex}: "${cellStr}"`);
+                                            }
+                                        });
+                                    });
+                                    
+                                    if (invalidEmails === 0) {
+                                        console.log(`   Aucun contenu avec @ trouvé dans les 20 premières lignes`);
+                                    }
+                                }
+                                
+                                console.log('\n' + '='.repeat(80));
+                                
+                                // MODE DÉBOGAGE ULTRA-DÉTAILLÉ
+                                console.log('🔍 ANALYSE COMPLÈTE DU FICHIER EXCEL');
+                                console.log('📊 Données brutes complètes (premières 20 lignes):');
+                                rawData.slice(0, 20).forEach((row, index) => {
+                                    console.log(`📍 Ligne ${index + 1}:`, row);
+                                    console.log(`   → Colonne 0: "${row[0] || '(vide)'}"`);
+                                    console.log(`   → Colonne 1: "${row[1] || '(vide)'}"`);
+                                    console.log(`   → Colonne 2: "${row[2] || '(vide)'}"`);
+                                    console.log(`   → Colonne 3: "${row[3] || '(vide)'}"`);
+                                    console.log(`   → Total colonnes: ${row.length}`);
+                                });
+                                
+                                // Analyser la structure des colonnes
+                                console.log('🔍 ANALYSE DE LA STRUCTURE DES COLONNES');
+                                const columnAnalysis = {
+                                    col0: { data: [], hasEmails: 0, hasOrgs: 0 },
+                                    col1: { data: [], hasEmails: 0, hasOrgs: 0 },
+                                    col2: { data: [], hasEmails: 0, hasOrgs: 0 },
+                                    col3: { data: [], hasEmails: 0, hasOrgs: 0 }
+                                };
+                                
+                                rawData.slice(0, 50).forEach((row, index) => {
+                                    [0, 1, 2, 3].forEach(colIndex => {
+                                        const cellData = (row[colIndex] || '').trim();
+                                        if (cellData) {
+                                            columnAnalysis[`col${colIndex}`].data.push(cellData);
+                                            
+                                            // Vérifier si c'est un email
+                                            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cellData)) {
+                                                columnAnalysis[`col${colIndex}`].hasEmails++;
+                                            }
+                                            // Vérifier si ça ressemble à une organisation (pas d'@, longueur > 2)
+                                            else if (!cellData.includes('@') && cellData.length > 2) {
+                                                columnAnalysis[`col${colIndex}`].hasOrgs++;
+                                            }
+                                        }
+                                    });
+                                });
+                                
+                                console.log('📊 Analyse par colonne:');
+                                Object.entries(columnAnalysis).forEach(([colName, analysis]) => {
+                                    console.log(`${colName}:`);
+                                    console.log(`   • Total données: ${analysis.data.length}`);
+                                    console.log(`   • Emails trouvés: ${analysis.hasEmails}`);
+                                    console.log(`   • Organisations: ${analysis.hasOrgs}`);
+                                    console.log(`   • Exemples:`, analysis.data.slice(0, 3));
+                                });
+                                
+                                // Détecter automatiquement la meilleure structure
+                                console.log('🤖 DÉTECTION AUTOMATIQUE DE LA STRUCTURE');
+                                let bestStructure = { orgCol: 0, emailCol: 1, confidence: 0 };
+                                
+                                // Tester toutes les combinaisons possibles
+                                for (let orgCol = 0; orgCol <= 3; orgCol++) {
+                                    for (let emailCol = 0; emailCol <= 3; emailCol++) {
+                                        if (orgCol !== emailCol) {
+                                            const orgData = columnAnalysis[`col${orgCol}`];
+                                            const emailData = columnAnalysis[`col${emailCol}`];
+                                            
+                                            // Calculer un score de confiance
+                                            const confidence = (orgData.hasOrgs * 2) + (emailData.hasEmails * 3);
+                                            
+                                            console.log(`   Test ${orgCol}->${emailCol}: confiance=${confidence} (orgs:${orgData.hasOrgs}, emails:${emailData.hasEmails})`);
+                                            
+                                            if (confidence > bestStructure.confidence) {
+                                                bestStructure = { orgCol, emailCol, confidence };
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                console.log(`🎯 MEILLEURE STRUCTURE DÉTECTÉE:`);
+                                console.log(`   • Organisation: Colonne ${bestStructure.orgCol}`);
+                                console.log(`   • Email: Colonne ${bestStructure.emailCol}`);
+                                console.log(`   • Confiance: ${bestStructure.confidence}`);
+                                
+                                // Utiliser la meilleure structure détectée
+                                data = rawData.map((row, index) => {
+                                    const organisation = (row[bestStructure.orgCol] || '').trim();
+                                    const email = (row[bestStructure.emailCol] || '').trim();
+                                    
+                                    // Debug des 10 premières lignes avec la nouvelle structure
+                                    if (index < 10) {
+                                        console.log(`🔄 Ligne ${index + 1} restructurée:`, {
+                                            organisation,
+                                            email,
+                                            originalRow: row
+                                        });
+                                    }
+                                    
+                                    return { organisation, email };
+                                }).filter(item => item.organisation || item.email);
+                                
+                                console.log('📋 Données après restructuration:', data.slice(0, 10));
+                                
+                                // CORRECTION FINALE GARANTIE - S'EXÉCUTE EN DERNIER
+                                console.log('\n🔧 CORRECTION FINALE GARANTIE:');
+                                console.log('→ Vérification et correction des colonnes inversées...');
+                                
+                                // Analyser les en-têtes réels
+                                if (rawData.length > 1) {
+                                    const headerRow = rawData[0] || []; // LIGNE 1 (pas ligne 3)
+                                    console.log('📋 En-têtes réels (ligne 1):', headerRow);
+                                    
+                                    // Chercher la vraie colonne E-MAIL
+                                    let realEmailCol = -1;
+                                    let realOrgCol = -1;
+                                    
+                                    headerRow.forEach((header, index) => {
+                                        const headerStr = String(header || '').toLowerCase();
+                                        if (headerStr.includes('e-mail') || headerStr.includes('email') || headerStr.includes('mail')) {
+                                            realEmailCol = index;
+                                            console.log(`✅ Colonne Email trouvée: ${index} -> "${header}"`);
+                                        } else if (headerStr.includes('organisation') || headerStr.includes('nom')) {
+                                            realOrgCol = index;
+                                            console.log(`✅ Colonne Organisation trouvée: ${index} -> "${header}"`);
+                                        }
+                                    });
+                                    
+                                    // Si on a trouvé les bonnes colonnes, recréer les données
+                                    if (realEmailCol !== -1 && realOrgCol !== -1) {
+                                        console.log(`🎯 Colonnes correctes trouvées: Organisation=${realOrgCol}, Email=${realEmailCol}`);
+                                        
+                                        // SOLUTION COMPLÈTE: Scanner TOUTES les lignes pour trouver les emails
+                                        console.log('\n🔍 SCAN COMPLET: Recherche de TOUS les emails dans tout le fichier...');
+                                        
+                                        let allValidContacts = [];
+                                        let totalLines = rawData.length;
+                                        let emailsFound = 0;
+                                        
+                                        rawData.forEach((row, index) => {
+                                            const organisation = String(row[realOrgCol] || '').trim();
+                                            const email = String(row[realEmailCol] || '').trim();
+                                            
+                                            // Vérifier si c'est un email valide
+                                            const hasAt = email.includes('@');
+                                            const hasDomain = email.includes('.');
+                                            const isValidEmail = hasAt && hasDomain && email.length > 5;
+                                            
+                                            if (isValidEmail) {
+                                                allValidContacts.push({ organisation, email });
+                                                emailsFound++;
+                                                
+                                                // Afficher les 10 premiers emails trouvés
+                                                if (emailsFound <= 10) {
+                                                    console.log(`✅ Email ${emailsFound}: "${email}" (${organisation || 'Pas d\'organisation'})`);
+                                                }
+                                            }
+                                        });
+                                        
+                                        console.log(`\n🎯 RÉSULTATS DU SCAN COMPLET:`);
+                                        console.log(`→ Total lignes scannées: ${totalLines}`);
+                                        console.log(`→ Emails valides trouvés: ${emailsFound}`);
+                                        console.log(`→ Contacts créés: ${allValidContacts.length}`);
+                                        
+                                        // Utiliser TOUS les contacts trouvés
+                                        data = allValidContacts;
+                                        
+                                        console.log(`🎯 Données finales complètes: ${data.length} contacts`);
+                                        
+                                        // Afficher les 10 premiers contacts finaux
+                                        console.log('\n📋 10 premiers contacts finaux:');
+                                        data.slice(0, 10).forEach((contact, index) => {
+                                            console.log(`${index + 1}. ${contact.organisation} | ${contact.email}`);
+                                        });
+                                    } else {
+                                        console.log('❌ Colonnes E-MAIL/ORGANISATION non trouvées dans les en-têtes');
+                                    }
+                                }
+                                
+                            } catch (excelError) {
+                                console.error('❌ Erreur parsing Excel:', excelError);
+                                reject(new Error('Erreur lors de la lecture du fichier Excel: ' + excelError.message));
+                                return;
+                            }
+                        } else {
+                            reject(new Error('Format de fichier non supporté. Utilisez CSV ou Excel (.xlsx, .xls)'));
+                            return;
+                        }
+                        
+                        // Détection automatique des colonnes inversées
+                        console.log('🔍 Détection des colonnes...');
+                        
+                        // Analyser les 10 premières lignes pour déterminer la structure
+                        const sampleRows = data.slice(0, 10);
+                        let emailInCol1 = 0;
+                        let emailInCol2 = 0;
+                        let orgInCol1 = 0;
+                        let orgInCol2 = 0;
+                        
+                        sampleRows.forEach(row => {
+                            const col1 = (row.organisation || '').trim();
+                            const col2 = (row.email || '').trim();
+                            
+                            // Vérifier si col1 ressemble à un email
+                            if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(col1)) {
+                                emailInCol1++;
+                            }
+                            // Vérifier si col2 ressemble à un email
+                            if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(col2)) {
+                                emailInCol2++;
+                            }
+                            // Vérifier si col1 ressemble à une organisation (contient des lettres, pas d'@)
+                            if (col1 && !col1.includes('@') && col1.length > 2) {
+                                orgInCol1++;
+                            }
+                            // Vérifier si col2 ressemble à une organisation
+                            if (col2 && !col2.includes('@') && col2.length > 2) {
+                                orgInCol2++;
+                            }
+                        });
+                        
+                        console.log('📊 Analyse des colonnes:', {
+                            emailInCol1, emailInCol2, orgInCol1, orgInCol2,
+                            sampleRows: sampleRows.slice(0, 3)
+                        });
+                        
+                        // Déterminer si les colonnes sont inversées
+                        let columnsInverted = false;
+                        if (emailInCol1 > emailInCol2 && orgInCol2 > orgInCol1) {
+                            columnsInverted = true;
+                            console.log('🔄 Colonnes inversées détectées - Inversion en cours...');
+                            
+                            // Inverser les colonnes pour toutes les données
+                            data = data.map(row => ({
+                                organisation: row.email || '',
+                                email: row.organisation || ''
+                            }));
+                            
+                            console.log('📋 Données après inversion:', data.slice(0, 3));
+                        } else {
+                            console.log('✅ Structure des colonnes correcte');
+                        }
+                        
+                        // Validation et filtrage des emails
+                        console.log('🔍 Validation des contacts...');
+                        
+                        // MODE DÉBOGAGE: Afficher tous les emails trouvés (même invalides)
+                        const allEmails = data.map(row => ({
+                            original: row,
+                            email: (row.email || '').trim(),
+                            organisation: (row.organisation || '').trim(),
+                            // Test avec plusieurs regex plus permissives
+                            looksLikeEmailStrict: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test((row.email || '').trim()),
+                            looksLikeEmailFlexible: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((row.email || '').trim()),
+                            hasAtSymbol: (row.email || '').includes('@'),
+                            hasDomain: (row.email || '').split('@').length === 2 && (row.email || '').split('@')[1].includes('.')
+                        }));
+                        
+                        console.log('📧 Analyse complète des emails trouvés:', allEmails.slice(0, 20));
+                        
+                        // Compter les types de données avec les nouvelles validations
+                        const emailPatternsStrict = allEmails.filter(item => item.looksLikeEmailStrict);
+                        const emailPatternsFlexible = allEmails.filter(item => item.looksLikeEmailFlexible);
+                        const nonEmailPatterns = allEmails.filter(item => !item.looksLikeEmailFlexible && item.email);
+                        const hasAtSymbol = allEmails.filter(item => item.hasAtSymbol);
+                        
+                        console.log('📊 Statistiques détaillées:', {
+                            totalLignes: data.length,
+                            emailsValidesStrict: emailPatternsStrict.length,
+                            emailsValidesFlexible: emailPatternsFlexible.length,
+                            nonEmails: nonEmailPatterns.length,
+                            avecSymboleAt: hasAtSymbol.length,
+                            lignesVides: data.filter(row => !row.email && !row.organisation).length,
+                            exemplesEmailsValides: emailPatternsFlexible.slice(0, 5).map(e => e.email),
+                            exemplesNonEmails: nonEmailPatterns.slice(0, 5).map(e => e.email),
+                            exemplesAvecAt: hasAtSymbol.slice(0, 5).map(e => e.email)
+                        });
+                        
+                        // Utiliser une validation plus flexible
+                        let validContacts = data.filter(row => {
+                            const email = (row.email || '').trim();
+                            const organisation = (row.organisation || '').trim();
+                            
+                            // Validation email flexible - accepte plus de formats
+                            const flexibleEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                            const isValidEmail = flexibleEmailRegex.test(email);
+                            
+                            if (isValidEmail) {
+                                console.log('✅ Contact valide (flexible):', { organisation, email });
+                                return true;
+                            } else {
+                                console.log('❌ Contact invalide:', { 
+                                    organisation, 
+                                    email, 
+                                    reason: !isValidEmail ? 'email invalide' : 'email valide accepté (organisation optionnelle)',
+                                    hasAt: email.includes('@'),
+                                    hasDomain: email.split('@').length === 2,
+                                    emailLength: email.length,
+                                    columnsInverted 
+                                });
+                                return false;
+                            }
+                        });
+                        
+                        console.log('📊 Résultat final:', {
+                            totalRows: data.length,
+                            validContacts: validContacts.length,
+                            invalidContacts: data.length - validContacts.length,
+                            columnsInverted,
+                            validationMode: 'flexible'
+                        });
+                        
+                        // DÉBOGAGE DES RÉSULTATS FINAUX
+                        console.log('🎯 RÉSULTATS FINAUX DU TRAITEMENT:');
+                        console.log('='.repeat(60));
+                        console.log(`📊 Total de lignes lues: ${data.length}`);
+                        console.log(`✅ Contacts valides: ${validContacts.length}`);
+                        console.log(`❌ Contacts invalides: ${data.length - validContacts.length}`);
+                        
+                        if (validContacts.length > 0) {
+                            console.log('\n📋 LISTE DES CONTACTS VALIDES TROUVÉS:');
+                            validContacts.forEach((contact, index) => {
+                                console.log(`${index + 1}. Organisation: "${contact.organisation}" | Email: "${contact.email}"`);
+                            });
+                        } else {
+                            console.log('\n❌ AUCUN CONTACT VALIDE TROUVÉ!');
+                            console.log('\n📋 10 PREMIÈRES LIGNES TRAITÉES (pour diagnostic):');
+                            data.slice(0, 10).forEach((row, index) => {
+                                console.log(`${index + 1}. Organisation: "${row.organisation}" | Email: "${row.email}"`);
+                                console.log(`   → Email valide: ${/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)}`);
+                                console.log(`   → Organisation non vide: ${row.organisation.length > 0}`);
+                            });
+                        }
+                        
+                        console.log('\n' + '='.repeat(60));
+                        
+                        if (validContacts.length === 0) {
+                            console.warn('⚠️ Aucun contact valide trouvé dans le fichier');
+                            console.log('📋 Exemples de données brutes:', data.slice(0, 5));
+                            
+                            // Message d'aide détaillé selon le cas
+                            if (columnsInverted) {
+                                console.log('💡 Les colonnes ont été inversées automatiquement.');
+                            }
+                            
+                            if (emailPatternsFlexible.length === 0) {
+                                console.log('❌ PROBLÈME: Aucun email valide trouvé même avec validation flexible !');
+                                console.log('📋 Analyse de votre fichier:');
+                                console.log(`   • Total lignes: ${data.length}`);
+                                console.log(`   • Avec symbole @: ${hasAtSymbol.length}`);
+                                console.log(`   • Ressemblant à des emails (strict): ${emailPatternsStrict.length}`);
+                                console.log(`   • Ressemblant à des emails (flexible): ${emailPatternsFlexible.length}`);
+                                
+                                if (hasAtSymbol.length > 0) {
+                                    console.log('🔍 Emails avec @ mais invalides:');
+                                    hasAtSymbol.slice(0, 5).forEach(item => {
+                                        console.log(`   ❌ "${item.email}" - problème probable: format incomplet`);
+                                    });
+                                    console.log('');
+                                    console.log('� CAUSES POSSIBLES:');
+                                    console.log('   • Emails incomplets (ex: "contact@" ou "@domaine")');
+                                    console.log('   • Espaces en début/fin (ex: " email@domaine.com ")');
+                                    console.log('   • Caractères spéciaux non supportés');
+                                    console.log('   • Domaine manquant (ex: "contact@.com")');
+                                } else {
+                                    console.log('❌ Aucun symbole @ trouvé dans votre fichier !');
+                                    console.log('📋 Votre fichier contient probablement:');
+                                    console.log('   • Des noms d\'entreprises sans emails');
+                                    console.log('   • Des numéros de téléphone');
+                                    console.log('   • Des adresses postales');
+                                }
+                            } else if (nonEmailPatterns.length > 0) {
+                                console.log('⚠️ Certains ressemblent à des emails mais ne sont pas valides:');
+                                nonEmailPatterns.slice(0, 5).forEach(item => {
+                                    console.log(`   ❌ "${item.email}" - format email incorrect`);
+                                });
+                            }
+                        } else {
+                            console.log(`🎉 SUCCÈS: ${validContacts.length} contacts valides trouvés !`);
+                        }
+                        
+                        // 🔧 CORRECTION FINALE ABSOLUE - Juste avant le resolve
+                        console.log('\n🔧 CORRECTION FINALE ABSOLUE:');
+                        console.log('→ Vérification que tous les emails sont inclus...');
+                        
+                        // Si on a rawData et qu'on a trouvé les colonnes, reconstruire avec TOUS les emails
+                        if (rawData && rawData.length > 1) {
+                            const headerRow = rawData[0] || [];
+                            console.log('📋 EN-TÊTES DÉTECTÉS:', headerRow);
+                            let realEmailCol = -1;
+                            let realOrgCol = -1;
+                            
+                            headerRow.forEach((header, index) => {
+                                const headerStr = String(header || '').toLowerCase();
+                                console.log(`   Colonne ${index}: "${header}" -> "${headerStr}"`);
+                                if (headerStr.includes('e-mail') || headerStr.includes('email') || headerStr.includes('mail')) {
+                                    realEmailCol = index;
+                                    console.log(`✅ Colonne EMAIL trouvée: index ${index}`);
+                                } else if (headerStr.includes('nom de l\'organisation') || headerStr.includes('nom de organisation') || headerStr.includes('organisation')) {
+                                    realOrgCol = index;
+                                    console.log(`✅ Colonne ORGANISATION trouvée: index ${index}`);
+                                }
+                            });
+                            
+                            if (realEmailCol !== -1) {
+                                console.log(`🎯 Colonnes finales: Organisation=${realOrgCol}, Email=${realEmailCol}`);
+                                
+                                let allEmails = [];
+                                rawData.forEach((row, index) => {
+                                    const organisation = String(row[realOrgCol] || '').trim();
+                                    const email = String(row[realEmailCol] || '').trim();
+                                    
+                                    const hasAt = email.includes('@');
+                                    const hasDomain = email.includes('.');
+                                    const isValidEmail = hasAt && hasDomain && email.length > 5;
+                                    
+                                    if (isValidEmail) {
+                                        allEmails.push({ organisation, email });
+                                        // Afficher les 3 premiers exemples
+                                        if (allEmails.length <= 3) {
+                                            console.log(`📋 Exemple ${allEmails.length}: "${organisation}" | "${email}"`);
+                                        }
+                                    }
+                                });
+                                
+                                console.log(`🎯 TROUVÉ: ${allEmails.length} emails au total (vs ${validContacts.length} contacts valides)`);
+                                
+                                if (allEmails.length > validContacts.length) {
+                                    console.log(`🔄 Remplacement de validContacts avec TOUS les emails trouvés...`);
+                                    validContacts = allEmails;
+                                    console.log(`🎉 NOUVEAU TOTAL: ${validContacts.length} contacts !`);
+                                }
+                            }
+                        }
+                        
+                        resolve(validContacts);
+                        
+                    } catch (error) {
+                        console.error('❌ Erreur générale parsing:', error);
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = function(error) {
+                    console.error('❌ Erreur lecture fichier:', error);
+                    reject(new Error('Erreur lors de la lecture du fichier'));
+                };
+                
+                // Choisir la méthode de lecture selon le type
+                if (file.name.endsWith('.csv')) {
+                    reader.readAsText(file, 'UTF-8');
+                } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                    reader.readAsBinaryString(file);
+                } else {
+                    reject(new Error('Format de fichier non supporté'));
+                }
+            });
+        }
+        
+        // Charger les contacts importés
+        async function loadContacts() {
+            // Éviter les chargements multiples
+            if (isLoadingContacts) {
+                console.log('⏳ Chargement des contacts déjà en cours, annulation...');
+                return;
+            }
+            
+            isLoadingContacts = true;
+            const list = document.getElementById('emailList');
+            list.innerHTML = '<p style="text-align: center;">⏳ Chargement...</p>';
+            
+            try {
+                console.log('📥 CHARGEMENT DES CONTACTS depuis /api/contacts...');
+                const res = await apiFetch('/api/contacts');
+                const data = await res.json();
+                
+                console.log('📋 DONNÉES REÇUES du backend:', data);
+                importedContacts = data.contacts || [];
+                console.log(`📊 ${importedContacts.length} contacts chargés`);
+                if (importedContacts.length > 0) {
+                    console.log('📋 Premier contact reçu:', importedContacts[0]);
+                    console.log('📋 Détails du premier contact:');
+                    console.log('   - Organisation:', importedContacts[0].organisation);
+                    console.log('   - Email:', importedContacts[0].email);
+                    console.log('   - Keys:', Object.keys(importedContacts[0]));
+                }
+                
+                // Mettre à jour les stats
+                document.getElementById('totalContacts').textContent = importedContacts.length;
+                document.getElementById('maxEmails').textContent = importedContacts.filter(c => !c.sent).length;
+                
+                if (importedContacts.length === 0) {
+                    console.log('⚠️ Aucun contact trouvé dans le backend');
+                    list.innerHTML = '<p style="text-align: center; color: #999;">Aucun contact importé</p>';
+                    return;
+                }
+                
+                // Afficher les contacts
+                const html = importedContacts.map(contact => `
+                    <div class="email-item ${contact.sent ? 'sent' : ''}">
+                        <div class="email-info">
+                            <strong>${contact.organisation}</strong><br>
+                            <small>${contact.email}</small>
+                        </div>
+                        <div class="email-status">
+                            ${contact.sent ? '✅ Envoyé' : '⏳ En attente'}
+                        </div>
+                    </div>
+                `).join('');
+                
+                console.log(`✅ Affichage de ${importedContacts.length} contacts dans l'interface`);
+                list.innerHTML = html;
+                
+                // Mettre à jour les badges de navigation
+                await updateNavBadges();
+            } catch (error) {
+                console.error('Erreur chargement contacts:', error);
+                list.innerHTML = '<p style="text-align: center; color: #FF4757;">Erreur de chargement</p>';
+            } finally {
+                isLoadingContacts = false;
+            }
+        }
+        
+        // Vider tous les contacts
+        async function clearAllContacts() {
+            const confirmed = await showConfirmModal({
+                title: '🗑️ Suppression des contacts',
+                emailsToSend: importedContacts.length,
+                totalContacts: importedContacts.length,
+                pendingContacts: importedContacts.filter(c => !c.sent).length,
+                subject: 'Tous les contacts seront définitivement supprimés'
+            });
+            if (!confirmed) return;
+            
+            try {
+                await apiFetch('/api/contacts', { method: 'DELETE' });
+                showAlert('✅ Tous les contacts ont été supprimés', 'success');
+                await loadContacts();
+                await updateNavBadges(); // Mettre à jour les badges après suppression
+            } catch (error) {
+                showAlert('❌ Erreur lors de la suppression', 'error');
+            }
+        }
+        
+        // Exporter les contacts
+        function exportContacts() {
+            window.location.href = '/api/export/contacts';
+            showAlert('📥 Export des contacts en cours...', 'success');
+        }
+        
+        // Envoyer un nombre personnalisé d'emails
+        async function sendCustomEmails() {
+            const count = parseInt(document.getElementById('emailCount').value);
+            if (!count || count < 1) {
+                showAlert('❌ Entrez un nombre valide', 'error');
+                return;
+            }
+            
+            sendEmails(count);
+        }
+        
+        // Envoyer les emails
+        async function sendEmails(limit) {
+            const subject = document.getElementById('subject').value.trim();
+            const message = document.getElementById('message').value.trim();
+            
+            if (!subject || !message) {
+                showAlert('❌ Remplissez le sujet et le message', 'error');
+                return;
+            }
+            
+            // Récupérer le nombre de contacts en attente
+            const pendingContacts = importedContacts.filter(c => !c.sent).length;
+            const totalContacts = importedContacts.length;
+            const emailsToSend = Math.min(limit, pendingContacts);
+            
+            if (emailsToSend === 0) {
+                showAlert('❌ Aucun contact à envoyer', 'error');
+                return;
+            }
+            
+            // Afficher le popup personnalisé
+            const confirmed = await showConfirmModal({
+                title: limit === 999999 ? '🚀 Envoi Massif' : '📧 Envoi d\'Emails',
+                emailsToSend: emailsToSend,
+                totalContacts: totalContacts,
+                pendingContacts: pendingContacts,
+                subject: subject
+            });
+            
+            if (!confirmed) return;
+            
+            showAlert('⏳ Envoi en cours...', 'success');
+            
+            try {
+                const res = await apiFetch('/api/send-emails', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject, message, limit })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showAlert(`✅ ${data.sent} emails envoyés avec succès!`, 'success');
+                    await loadContacts();
+                    
+                    // Mettre à jour les badges avec les nouvelles statistiques
+                    await updateNavBadges();
+                    
+                    // Mettre à jour le widget de suivi s'il existe
+                    if (typeof loadEmailTracking === 'function') {
+                        loadEmailTracking();
+                    }
+                } else {
+                    showAlert('❌ Erreur lors de l\'envoi', 'error');
+                }
+            } catch (e) {
+                console.error('❌ Erreur envoi:', e);
+                showAlert('❌ Erreur: ' + e.message, 'error');
+            }
+        }
+        
+        // Afficher une alerte
+        function showAlert(message, type = 'info') {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = 'alert alert-' + type;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Modal de confirmation
+        function showConfirmModal(options) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.75);
+                    backdrop-filter: blur(6px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                `;
+                
+                // Adapter l'icône et le message selon le type d'action
+                const isDeletion = options.title.includes('Suppression');
+                const icon = isDeletion ? '🗑️' : (options.title.includes('Massif') ? '🚀' : '📧');
+                const mainMessage = isDeletion 
+                    ? `Vous allez supprimer <strong>${options.emailsToSend}</strong> contacts`
+                    : `Vous allez envoyer <strong>${options.emailsToSend}</strong> emails`;
+                
+                modal.innerHTML = `
+                    <div style="background: linear-gradient(180deg, ${isDeletion ? '#2d1b1b' : '#2b2f3a'} 0%, ${isDeletion ? '#1f1414' : '#1f2430'} 100%); border-radius: 12px; padding: 30px; max-width: 450px; width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.04); text-align: center; color: #fff;">
+                        <div style="font-size: 2.5em; margin-bottom: 15px;">${icon}</div>
+                        <h3 style="margin-bottom: 15px; color: ${isDeletion ? '#ff6b6b' : '#fff'};">${options.title}</h3>
+                        <p style="margin-bottom: 10px;">${mainMessage}</p>
+                        ${isDeletion ? `
+                            <p style="font-size: 0.9em; color: #ff9999; margin-bottom: 15px;">
+                                ⚠️ Cette action est <strong>irréversible</strong>
+                            </p>
+                            ${options.pendingContacts > 0 ? `
+                                <p style="font-size: 0.85em; color: #ffc107; margin-bottom: 20px;">
+                                    📧 ${options.pendingContacts} emails non envoyés seront aussi supprimés
+                                </p>
+                            ` : ''}
+                        ` : `
+                            <p style="font-size: 0.9em; color: #cbd5e1; margin-bottom: 20px;">Sujet: ${options.subject}</p>
+                        `}
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button id="cancelBtn" style="padding: 10px 20px; border: 1px solid ${isDeletion ? '#ff6b6b' : '#667eea'}; background: transparent; color: ${isDeletion ? '#ff6b6b' : '#667eea'}; border-radius: 6px; cursor: pointer;">Annuler</button>
+                            <button id="confirmBtn" style="padding: 10px 20px; border: none; background: ${isDeletion ? '#ff4757' : '#667eea'}; color: white; border-radius: 6px; cursor: pointer;">${isDeletion ? 'Supprimer' : 'Confirmer'}</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                // Ajouter les écouteurs d'événements
+                modal.querySelector('#cancelBtn').addEventListener('click', () => {
+                    modal.remove();
+                    resolve(false);
+                });
+                
+                modal.querySelector('#confirmBtn').addEventListener('click', () => {
+                    modal.remove();
+                    resolve(true);
+                });
+            });
+        }
+        
+        // Tableau de bord de suivi en temps réel
+        let dashboardInterval = null;
+        
+        async function loadDashboardStats() {
+            try {
+                const res = await apiFetch('/api/dashboard-stats');
+                const data = await res.json();
+                
+                if (data.success) {
+                    updateDashboardDisplay(data.stats);
+                }
+            } catch (error) {
+                console.error('Erreur chargement dashboard:', error);
+            }
+        }
+        
+        function updateDashboardDisplay(stats) {
+            // Mettre à jour les badges de navigation avec les stats temps réel
+            const totalBadge = document.querySelector('[data-badge="total"]');
+            const sentBadge = document.querySelector('[data-badge="sent"]');
+            const pendingBadge = document.querySelector('[data-badge="pending"]');
+            
+            if (totalBadge) totalBadge.textContent = stats.totalContacts;
+            if (sentBadge) sentBadge.textContent = stats.sentContacts;
+            if (pendingBadge) pendingBadge.textContent = stats.pendingContacts;
+            
+            // Mettre à jour les compteurs principaux
+            document.getElementById('totalContacts').textContent = stats.totalContacts;
+            document.getElementById('maxEmails').textContent = stats.pendingContacts;
+            
+            // Afficher les stats de suivi si l'élément existe
+            const trackingStats = document.getElementById('trackingStats');
+            if (trackingStats) {
+                trackingStats.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4>📧 Emails Envoyés</h4>
+                            <div class="stat-number">${stats.totalSent}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>👁️ Emails Ouverts</h4>
+                            <div class="stat-number">${stats.totalOpened}</div>
+                            <div class="stat-rate">${stats.openRate}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>💬 Réponses</h4>
+                            <div class="stat-number">${stats.totalReplied}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>⏰ Dernière mise à jour</h4>
+                            <div class="stat-time">${new Date().toLocaleTimeString()}</div>
+                        </div>
+                    </div>
+                    
+                    ${stats.recentOpens.length > 0 ? `
+                        <div class="recent-activity">
+                            <h4>🔥 Ouvertures récentes</h4>
+                            ${stats.recentOpens.map(open => `
+                                <div class="activity-item">
+                                    <strong>${open.email}</strong>
+                                    <small>${open.organisation || ''}</small>
+                                    <span class="activity-time">${new Date(open.openedAt).toLocaleTimeString()}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                `;
+            }
+        }
+        
+        // Démarrer le rafraîchissement automatique
+        function startRealTimeUpdates() {
+            // Charger les stats immédiatement
+            loadDashboardStats();
+            
+            // Rafraîchir toutes les 30 secondes
+            if (dashboardInterval) clearInterval(dashboardInterval);
+            dashboardInterval = setInterval(loadDashboardStats, 30000);
+            
+            console.log('🔄 Suivi temps réel démarré (rafraîchissement toutes les 30s)');
+        }
+        
+        // Arrêter le rafraîchissement
+        function stopRealTimeUpdates() {
+            if (dashboardInterval) {
+                clearInterval(dashboardInterval);
+                dashboardInterval = null;
+                console.log('⏸️ Suivi temps réel arrêté');
+            }
+        }
+
+        // Charger les contacts au démarrage
+        window.addEventListener('load', async () => {
+            await loadContacts();
+            await loadManualRecipients(); // Charger les destinataires manuels
+            await updateNavBadges(); // Initialiser les badges au chargement
+            
+            // Démarrer le suivi temps réel après 2 secondes
+            setTimeout(() => {
+                startRealTimeUpdates();
+            }, 2000);
+            
+            // Rafraîchir les badges toutes les 30 secondes
+            setInterval(async () => {
+                await updateNavBadges();
+            }, 30000);
+        });
+        
+        // Widget de suivi des emails
+        function createEmailTrackingWidget() {
+            const widget = document.createElement('div');
+            widget.id = 'emailTrackingWidget';
+            widget.innerHTML = `
+                <div class="tracking-widget" style="background: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #e9ecef;">
+                    <h3 style="margin-bottom: 15px; color: #333;">📊 Suivi des Emails Envoyés</h3>
+                    
+                    <div class="tracking-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        <div class="stat-card" style="background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="totalSent">0</div>
+                            <div style="color: #666; font-size: 14px;">Emails Envoyés</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 24px; font-weight: bold; color: #28a745;" id="totalOpened">0</div>
+                            <div style="color: #666; font-size: 14px;">Emails Ouverts</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 15px; border-radius: 6px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <div style="font-size: 24px; font-weight: bold; color: #ffc107;" id="openRate">0%</div>
+                            <div style="color: #666; font-size: 14px;">Taux d'Ouverture</div>
+                        </div>
+                    </div>
+                    
+                    <div class="tracking-list" style="background: white; border-radius: 6px; padding: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">📋 Liste des Emails Suivis</h4>
+                        <div id="trackingList" style="max-height: 300px; overflow-y: auto;">
+                            <p style="color: #999; text-align: center;">Chargement...</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 15px; text-align: center;">
+                        <small style="color: #666;">Dernière mise à jour: <span id="lastUpdate">-</span></small>
+                    </div>
+                </div>
+            `;
+            
+            return widget;
+        }
+
+        // Charger et afficher les données de suivi
+        async function loadEmailTracking() {
+            try {
+                const res = await apiFetch('/api/dashboard-stats');
+                const data = await res.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    // Mettre à jour les compteurs
+                    document.getElementById('totalSent').textContent = stats.totalSent || 0;
+                    document.getElementById('totalOpened').textContent = stats.totalOpened || 0;
+                    document.getElementById('openRate').textContent = (stats.openRate || 0) + '%';
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    
+                    // Afficher la liste des emails
+                    const trackingList = document.getElementById('trackingList');
+                    if (stats.allTracking && stats.allTracking.length > 0) {
+                        trackingList.innerHTML = stats.allTracking.map(item => `
+                            <div class="tracking-item" style="border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong>${item.email}</strong>
+                                    <br><small style="color: #666;">${item.organisation || 'Non spécifié'}</small>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="padding: 2px 8px; border-radius: 4px; font-size: 12px; background: ${item.opened ? '#28a745' : '#ffc107'}; color: white;">
+                                        ${item.opened ? '✅ Ouvert' : '⏳ En attente'}
+                                    </span>
+                                    <br><small style="color: #999;">
+                                        Envoyé: ${new Date(item.sentAt).toLocaleDateString()}
+                                        ${item.openedAt ? `<br>Ouvert: ${new Date(item.openedAt).toLocaleDateString()}` : ''}
+                                    </small>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        trackingList.innerHTML = '<p style="color: #999; text-align: center;">Aucun email suivi pour le moment</p>';
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement suivi:', error);
+                const trackingList = document.getElementById('trackingList');
+                if (trackingList) {
+                    trackingList.innerHTML = '<p style="color: #ff4757; text-align: center;">Erreur de chargement</p>';
+                }
+            }
+        }
+
+        // Initialiser le widget de suivi
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ajouter le widget après la section des contacts
+            const contactsSection = document.querySelector('.email-list');
+            if (contactsSection) {
+                const widget = createEmailTrackingWidget();
+                contactsSection.parentNode.insertBefore(widget, contactsSection.nextSibling);
+                
+                // Charger les données initiales
+                loadEmailTracking();
+                
+                // Rafraîchir toutes les 30 secondes
+                setInterval(loadEmailTracking, 30000);
+            }
+        });
+    </script>
+</body>
+</html>

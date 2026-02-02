@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Expobeton-Email</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f1e;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(30, 30, 50, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 25px;
+            font-size: 2em;
+            text-align: center;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+        }
+        
+        .faq-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            padding-bottom: 15px;
+        }
+        
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+        
+        .question {
+            color: #667eea;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .question:hover {
+            color: #764ba2;
+        }
+        
+        .question::before {
+            content: "❓";
+            font-size: 1.3em;
+        }
+        
+        .answer {
+            color: rgba(255,255,255,0.75);
+            line-height: 1.6;
+            margin-left: 30px;
+            font-size: 0.95em;
+        }
+        
+        .answer strong {
+            color: rgba(255,255,255,0.95);
+        }
+        
+        .answer code {
+            background: rgba(102, 126, 234, 0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #a78bfa;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+            font-size: 0.9em;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6);
+        }
+        
+        .tip {
+            background: rgba(40, 167, 69, 0.15);
+            padding: 12px;
+            border-left: 3px solid #28a745;
+            margin: 15px 0;
+            border-radius: 8px;
+            color: rgba(255,255,255,0.85);
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.15);
+            padding: 12px;
+            border-left: 3px solid #ffc107;
+            margin: 15px 0;
+            border-radius: 8px;
+            color: rgba(255,255,255,0.85);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>❓ FAQ - Expobeton-Email</h1>
+        
+        <div class="faq-item">
+            <div class="question">🚀 Qu'est-ce qu'Expobeton-Email ?</div>
+            <div class="answer">
+                Expobeton-Email est une plateforme professionnelle d'emailing qui permet de gérer 
+                des campagnes d'envoi d'emails avec suivi des performances en temps réel.
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">📧 Comment importer mes contacts ?</div>
+            <div class="answer">
+                Vous pouvez importer vos contacts via un fichier Excel (.xlsx) ou CSV. 
+                Le fichier doit contenir les colonnes "Organisation" et "Email".
+                <div class="tip">💡 Astuce : Maximum 10 000 contacts par importation.</div>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">📊 Comment fonctionne le suivi des emails ?</div>
+            <div class="answer">
+                Chaque email envoyé contient un pixel de suivi invisible. Quand un destinataire 
+                ouvre l'email, nous recevons une notification et mettons à jour les statistiques 
+                en temps réel.
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">🔒 Mes données sont-elles sécurisées ?</div>
+            <div class="answer">
+                Oui, nous respectons le RGPD et la législation française. Vos données sont 
+                chiffrées et conservées uniquement le temps nécessaire au fonctionnement du service.
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">📱 Le logiciel est-il compatible mobile ?</div>
+            <div class="answer">
+                Oui ! Expobeton-Email est 100% responsif et fonctionne parfaitement sur 
+                ordinateur, tablette et mobile avec une interface optimisée pour chaque écran.
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">🗑️ Comment supprimer mes destinataires manuels ?</div>
+            <div class="answer">
+                Cliquez sur le bouton "Vider la liste" dans la section des envois manuels. 
+                Les destinataires sont supprimés définitivement après confirmation.
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">⏱️ Combien de temps les données sont-elles conservées ?</div>
+            <div class="answer">
+                <ul>
+                    <li>Contacts : jusqu'à suppression manuelle</li>
+                    <li>Données de suivi : 6 mois maximum</li>
+                    <li>Logs de connexion : 30 jours maximum</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">🚨 Que faire si mes emails vont en spam ?</div>
+            <div class="answer">
+                <div class="warning">
+                    Pour éviter le spam :
+                    <ul>
+                        <li>Utilisez un sujet professionnel</li>
+                        <li>Évitez les mots en majuscules</li>
+                        <li>Personnalisez le contenu</li>
+                        <li>Utilisez des contacts qualifiés</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">🔄 Puis-je réutiliser les destinataires manuels ?</div>
+            <div class="answer">
+                Oui ! Les destinataires manuels sont persistants et restent dans votre liste 
+                même après actualisation de la page ou redémarrage du serveur jusqu'à suppression manuelle.
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">📞 Comment contacter le support ?</div>
+            <div class="answer">
+                Pour toute question technique, contactez-nous :
+                <ul>
+                    <li><strong>Téléphone service technique</strong> : <a href="tel:+212600989761" style="color: #667eea;">+212 600-989-761</a></li>
+                    <li><strong>Email technique</strong> : <a href="mailto:webconsulting66@gmail.com" style="color: #667eea;">webconsulting66@gmail.com</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <div class="question">🔧 Qui a développé cette plateforme ?</div>
+            <div class="answer">
+                Cette plateforme a été réalisée par 
+                <a href="https://webconsulting.vercel.app" target="_blank" rel="noopener noreferrer" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-decoration: none; font-weight: bold;">
+                    Webconsulting
+                </a>, spécialiste en solutions web et applications professionnelles.
+            </div>
+        </div>
+        
+        <div class="tip">
+            <strong>💡 Dernière mise à jour :</strong> 2 février 2026
+        </div>
+        
+        <a href="/app.html" class="back-btn">← Retour à l'application</a>
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="/mentions-legales.html" style="color: rgba(255,255,255,0.5); text-decoration: none; font-size: 0.9em;">
+                📋 Mentions légales
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,480 @@
+# 🚀 Guide de Déploiement Production
+
+## 📋 Prérequis
+
+- VPS avec Ubuntu 20.04/22.04 (minimum 2GB RAM)
+- Nom de domaine configuré
+- Accès SSH root ou sudo
+
+---
+
+## 1️⃣ Préparation du Serveur
+
+### **Connexion SSH**
+
+```bash
+ssh root@votre-ip-serveur
+```
+
+### **Mise à jour du système**
+
+```bash
+apt update && apt upgrade -y
+```
+
+### **Installation Node.js 20+**
+
+```bash
+# Installer Node.js 20 (recommandé)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+apt install -y nodejs
+node --version  # Vérifier : v20.x ou plus
+```
+
+### **Installation PM2**
+
+```bash
+npm install -g pm2
+pm2 --version
+```
+
+### **Installation Nginx**
+
+```bash
+apt install -y nginx
+systemctl status nginx
+```
+
+### **Installation Certbot (SSL)**
+
+```bash
+apt install -y certbot python3-certbot-nginx
+```
+
+---
+
+## 2️⃣ Configuration du Domaine
+
+### **DNS**
+
+Ajoutez ces enregistrements DNS :
+
+```
+Type    Nom                 Valeur
+A       votredomaine.com    VOTRE_IP_SERVEUR
+A       www                 VOTRE_IP_SERVEUR
+```
+
+**Attendez 5-10 minutes** pour la propagation DNS.
+
+### **Vérification**
+
+```bash
+ping votredomaine.com
+# Doit répondre avec votre IP
+```
+
+---
+
+## 3️⃣ Déploiement de l'Application
+
+### **Créer un utilisateur dédié**
+
+```bash
+adduser hyperemail
+usermod -aG sudo hyperemail
+su - hyperemail
+```
+
+### **Cloner ou transférer l'application**
+
+**Option A : Depuis votre machine locale**
+
+```bash
+# Sur votre machine locale
+cd /Users/jamilaaitbouchnani/Downloads/HyperEmail-main
+tar -czf hyperemail.tar.gz .
+scp hyperemail.tar.gz hyperemail@votre-ip:/home/hyperemail/
+
+# Sur le serveur
+cd /home/hyperemail
+tar -xzf hyperemail.tar.gz
+rm hyperemail.tar.gz
+```
+
+**Option B : Depuis Git (si vous avez un repo)**
+
+```bash
+cd /home/hyperemail
+git clone https://github.com/votre-repo/hyperemail.git
+cd hyperemail
+```
+
+### **Installer les dépendances**
+
+```bash
+cd /home/hyperemail/hyperemail
+npm install --production
+```
+
+---
+
+## 4️⃣ Configuration de l'Application
+
+### **Créer le fichier .env**
+
+```bash
+cp env.production.example .env
+nano .env
+```
+
+**Modifiez les valeurs :**
+
+```env
+NODE_ENV=production
+PORT=3000
+HOST=0.0.0.0
+
+# Supabase
+SUPABASE_SERVICE_ROLE_KEY=/home/hyperemail/supabase.js
+
+# SMTP - SendGrid (Recommandé)
+SMTP_SERVICE=sendgrid
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=VOTRE_CLE_API_SENDGRID
+EMAIL_FROM=noreply@votredomaine.com
+EMAIL_FROM_NAME=HyperEmail
+
+# Sécurité
+SESSION_SECRET=$(openssl rand -base64 32)
+CORS_ORIGIN=https://votredomaine.com
+```
+
+**Sauvegardez** : Ctrl+O, Enter, Ctrl+X
+
+### **Transférer le fichier Supabase**
+
+```bash
+# Sur votre machine locale
+scp ~/supabase.js hyperemail@votre-ip:/home/hyperemail/
+
+# Sur le serveur
+chmod 600 /home/hyperemail/supabase.js
+```
+
+### **Créer le dossier logs**
+
+```bash
+mkdir -p /home/hyperemail/hyperemail/logs
+```
+
+---
+
+## 5️⃣ Configuration PM2
+
+### **Démarrer l'application**
+
+```bash
+cd /home/hyperemail/hyperemail
+pm2 start ecosystem.config.js --env production
+```
+
+### **Vérifier le statut**
+
+```bash
+pm2 status
+pm2 logs hyperemail
+```
+
+**Vous devriez voir :**
+```
+✅ Supabase connecté
+✅ SMTP: noreply@votredomaine.com
+🚀 Serveur: http://0.0.0.0:3000
+```
+
+### **Configurer le démarrage automatique**
+
+```bash
+pm2 startup
+# Copier-coller la commande affichée
+
+pm2 save
+```
+
+---
+
+## 6️⃣ Configuration Nginx
+
+### **Créer la configuration**
+
+```bash
+sudo nano /etc/nginx/sites-available/hyperemail
+```
+
+**Copiez le contenu de `nginx.conf`** (remplacez `votredomaine.com`)
+
+### **Activer le site**
+
+```bash
+sudo ln -s /etc/nginx/sites-available/hyperemail /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default  # Supprimer le site par défaut
+```
+
+### **Tester la configuration**
+
+```bash
+sudo nginx -t
+```
+
+**Si OK :**
+```bash
+sudo systemctl reload nginx
+```
+
+---
+
+## 7️⃣ Configuration SSL (HTTPS)
+
+### **Obtenir le certificat**
+
+```bash
+sudo certbot --nginx -d votredomaine.com -d www.votredomaine.com
+```
+
+**Suivez les instructions :**
+1. Entrez votre email
+2. Acceptez les conditions
+3. Choisissez "2" pour rediriger HTTP vers HTTPS
+
+### **Vérification**
+
+```bash
+sudo certbot certificates
+```
+
+### **Renouvellement automatique**
+
+```bash
+sudo certbot renew --dry-run
+```
+
+Le renouvellement se fera automatiquement tous les 90 jours.
+
+---
+
+## 8️⃣ Configuration du Firewall
+
+### **UFW (Firewall)**
+
+```bash
+sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+sudo ufw enable
+sudo ufw status
+```
+
+---
+
+## 9️⃣ Vérification Finale
+
+### **Test de l'application**
+
+1. **Ouvrez** : https://votredomaine.com
+2. **Vous devriez voir** : Page de connexion HyperEmail
+3. **Connectez-vous** avec les credentials
+4. **Testez** le scraping
+
+### **Vérifier les logs**
+
+```bash
+# Logs PM2
+pm2 logs hyperemail
+
+# Logs Nginx
+sudo tail -f /var/log/nginx/hyperemail-access.log
+sudo tail -f /var/log/nginx/hyperemail-error.log
+
+# Logs système
+journalctl -u nginx -f
+```
+
+---
+
+## 🔧 Commandes Utiles
+
+### **PM2**
+
+```bash
+pm2 restart hyperemail    # Redémarrer
+pm2 stop hyperemail       # Arrêter
+pm2 delete hyperemail     # Supprimer
+pm2 logs hyperemail       # Voir les logs
+pm2 monit                 # Monitoring en temps réel
+```
+
+### **Nginx**
+
+```bash
+sudo systemctl status nginx    # Statut
+sudo systemctl restart nginx   # Redémarrer
+sudo systemctl reload nginx    # Recharger config
+sudo nginx -t                  # Tester config
+```
+
+### **Mise à jour de l'application**
+
+```bash
+cd /home/hyperemail/hyperemail
+git pull  # Si Git
+# Ou transférer les nouveaux fichiers
+
+npm install --production
+pm2 restart hyperemail
+```
+
+---
+
+## 📊 Monitoring
+
+### **Installer PM2 Plus (Optionnel)**
+
+```bash
+pm2 link VOTRE_CLE_SECRETE VOTRE_CLE_PUBLIQUE
+```
+
+Interface web : https://app.pm2.io
+
+### **Monitoring des ressources**
+
+```bash
+# CPU et RAM
+htop
+
+# Espace disque
+df -h
+
+# Logs en temps réel
+pm2 logs hyperemail --lines 100
+```
+
+---
+
+## 🔒 Sécurité Supplémentaire
+
+### **Fail2Ban (Protection SSH)**
+
+```bash
+sudo apt install -y fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+```
+
+### **Désactiver le login root**
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Modifier :
+```
+PermitRootLogin no
+```
+
+```bash
+sudo systemctl restart sshd
+```
+
+### **Mises à jour automatiques**
+
+```bash
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+```
+
+---
+
+## 🆘 Dépannage
+
+### **L'application ne démarre pas**
+
+```bash
+pm2 logs hyperemail --err
+# Vérifier les erreurs
+
+# Vérifier les variables d'environnement
+cat .env
+
+# Vérifier Supabase
+ls -la /home/hyperemail/supabase.js
+```
+
+### **Nginx erreur 502**
+
+```bash
+# Vérifier que l'app tourne
+pm2 status
+
+# Vérifier les logs Nginx
+sudo tail -f /var/log/nginx/hyperemail-error.log
+
+# Redémarrer
+pm2 restart hyperemail
+sudo systemctl restart nginx
+```
+
+### **SSL ne fonctionne pas**
+
+```bash
+# Vérifier les certificats
+sudo certbot certificates
+
+# Renouveler manuellement
+sudo certbot renew --force-renewal
+
+# Vérifier la config Nginx
+sudo nginx -t
+```
+
+---
+
+## ✅ Checklist Finale
+
+- [ ] Application accessible sur https://votredomaine.com
+- [ ] Certificat SSL valide (cadenas vert)
+- [ ] Login fonctionne
+- [ ] Scraping fonctionne
+- [ ] Supabase connecté
+- [ ] Emails s'envoient
+- [ ] PM2 configuré pour démarrage auto
+- [ ] Firewall activé
+- [ ] Logs accessibles
+- [ ] Monitoring en place
+
+---
+
+## 📞 Support
+
+**En cas de problème :**
+
+1. Vérifiez les logs : `pm2 logs hyperemail`
+2. Vérifiez Nginx : `sudo nginx -t`
+3. Vérifiez le firewall : `sudo ufw status`
+4. Redémarrez tout : `pm2 restart hyperemail && sudo systemctl restart nginx`
+
+---
+
+## 🎉 Félicitations !
+
+**Votre application HyperEmail est maintenant en production !**
+
+**URL** : https://votredomaine.com  
+**Monitoring** : `pm2 monit`  
+**Logs** : `pm2 logs hyperemail`
+
+---
+
+© 2025 **Maroc Gestion Entreprendre** - Tous droits réservés
