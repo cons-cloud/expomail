@@ -1,0 +1,10 @@
+{
+  "subject": "TEST CRITIQUE - Diagnostic Email",
+  "message": "Ceci est un test de diagnostic pour vérifier l'envoi d'email. Si vous recevez cet email, la configuration SMTP fonctionne.",
+  "contacts": [
+    {
+      "email": "webconsulting66@gmail.com",
+      "organisation": "Test Diagnostic"
+    }
+  ]
+}

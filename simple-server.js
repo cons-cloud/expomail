@@ -7,9 +7,39 @@ const path = require('path');
 const fs = require('fs').promises;
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const multer = require('multer');
 const crypto = require('crypto');
 
 const app = express();
+
+// Configuration de multer pour les pièces jointes
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 25 * 1024 * 1024, // 25MB max par fichier
+        files: 10 // Maximum 10 fichiers
+    },
+    fileFilter: (req, file, cb) => {
+        // Types de fichiers autorisés
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'application/pdf',
+            'text/plain', 'text/csv',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        ];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error(`Type de fichier non autorisé: ${file.mimetype}`), false);
+        }
+    }
+});
 
 // Middleware de sécurité
 app.use(helmet({
@@ -505,20 +535,15 @@ app.post('/api/send-emails', async (req, res) => {
                 
                 const trackingPixel = `<img src="http://localhost:3000/api/track-open/${emailId}" width="1" height="1" style="display:none;">`;
                 
+                // Créer version texte propre
+                const textMessage = message.replace(/<br>/g, '\n').replace(/<[^>]*>/g, '');
+                
                 const mailOptions = {
                     from: `"EXPOBETONRDC" <${process.env.SMTP_USER}>`,
                     to: contact.email,
                     subject: subject,
-                    text: message + `\n\n---\n📧 Cet email est envoyé via EXPOBETONRDC\n🔍 Suivi d'ouverture activé`,
-                    html: `
-                        ${message.replace(/\n/g, '<br>')}
-                        <br><br><hr>
-                        <p style="color: #666; font-size: 12px;">
-                            📧 Cet email est envoyé via EXPOBETONRDC<br>
-                            🔍 Suivi d'ouverture activé
-                        </p>
-                        ${trackingPixel}
-                    `
+                    text: textMessage + `\n\n---\n📧 Cet email est envoyé via EXPOBETONRDC\n🔍 Suivi d'ouverture activé\n\n🌐 Visitez notre site: https://www.expobetonrdc.com/`,
+                    html: message.replace(/\n/g, '<br>') + `<br><br><hr style="border: 1px solid #eee; margin: 20px 0;"><p style="color: #666; font-size: 12px;">📧 Cet email est envoyé via EXPOBETONRDC</p><p style="color: #667eea; font-size: 12px;">🌐 Visitez notre site: <a href="https://www.expobetonrdc.com/" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">www.expobetonrdc.com</a></p>` + trackingPixel
                 };
 
                 await transporter.sendMail(mailOptions);
@@ -553,9 +578,10 @@ app.post('/api/send-emails', async (req, res) => {
 });
 
 // Envoyer des emails manuels
-app.post('/api/send-manual-emails', async (req, res) => {
+app.post('/api/send-manual-emails', upload.array('attachments', 10), async (req, res) => {
     try {
-        const { subject, message, contacts } = req.body;
+        const { subject, message, contacts, cc, bcc } = req.body;
+        const attachments = req.files || [];
         
         if (!subject || !message) {
             return res.status(400).json({ error: 'Sujet et message requis' });
@@ -583,6 +609,10 @@ app.post('/api/send-manual-emails', async (req, res) => {
             });
         }
         
+        // Parser les CC et BCC
+        const ccRecipients = cc ? (Array.isArray(cc) ? cc : cc.split(',').map(email => email.trim())) : [];
+        const bccRecipients = bcc ? (Array.isArray(bcc) ? bcc : bcc.split(',').map(email => email.trim())) : [];
+        
         let sent = 0;
         let errors = 0;
         
@@ -597,9 +627,12 @@ app.post('/api/send-manual-emails', async (req, res) => {
                 const mailOptions = {
                     from: `"EXPOBETONRDC" <${process.env.SMTP_USER}>`,
                     to: contact.email,
+                    cc: ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined,
+                    bcc: bccRecipients.length > 0 ? bccRecipients.join(', ') : undefined,
                     subject: subject,
-                    text: message,
-                    html: message.replace(/\n/g, '<br>') + trackingPixel
+                    text: message + `\n\n---\n📧 Cet email est envoyé via EXPOBETONRDC\n\n🌐 Visitez notre site: https://www.expobetonrdc.com/`,
+                    html: message.replace(/\n/g, '<br>') + `<br><br><hr style="border: 1px solid #eee; margin: 20px 0;"><p style="color: #666; font-size: 12px;">📧 Cet email est envoyé via EXPOBETONRDC</p><p style="color: #667eea; font-size: 12px;">🌐 Visitez notre site: <a href="https://www.expobetonrdc.com/" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 600;">www.expobetonrdc.com</a></p>` + trackingPixel,
+                    ...(attachments.length > 0 && { attachments: attachments })
                 };
 
                 await transporter.sendMail(mailOptions);
@@ -645,6 +678,236 @@ app.post('/api/send-manual-emails', async (req, res) => {
     } catch (error) {
         console.error('❌ Erreur envoi emails manuels:', error);
         res.status(500).json({ success: false, error: 'Erreur lors de l\'envoi des emails' });
+    }
+});
+
+// Route pour les envois d'emails avancés (avec pièces jointes, formatage HTML, etc.)
+app.post('/api/send-advanced-email', upload.array('attachments', 10), async (req, res) => {
+    try {
+        const { to, cc, bcc, subject, message, isHtml } = req.body;
+        
+        if (!to || !subject || !message) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Destinataires, sujet et message sont requis' 
+            });
+        }
+        
+        // Parser les destinataires
+        const recipients = Array.isArray(to) ? to : to.split(',').map(email => email.trim());
+        const ccRecipients = cc ? (Array.isArray(cc) ? cc : cc.split(',').map(email => email.trim())) : [];
+        const bccRecipients = bcc ? (Array.isArray(bcc) ? bcc : bcc.split(',').map(email => email.trim())) : [];
+        
+        // Préparer les pièces jointes
+        const attachments = req.files ? req.files.map(file => ({
+            filename: file.originalname,
+            content: file.buffer,
+            contentType: file.mimetype
+        })) : [];
+        
+        let sent = 0;
+        let errors = 0;
+        
+        for (const email of [...recipients, ...ccRecipients, ...bccRecipients]) {
+            if (!email) continue;
+            
+            try {
+                // Générer un ID de suivi unique
+                const emailId = Buffer.from(`${email}-${Date.now()}`).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+                
+                // Ajouter le tracking pixel si HTML
+                let finalMessage = message;
+                let textMessage = message.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''); // Version texte
+                
+                if (isHtml === 'true') {
+                    const trackingPixel = `<img src="http://localhost:3000/api/track-open/${emailId}" width="1" height="1" style="display:none;">`;
+                    finalMessage = message + trackingPixel;
+                }
+                
+                const mailOptions = {
+                    from: `"EXPOBETONRDC" <${process.env.SMTP_USER}>`,
+                    to: email,
+                    cc: ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined,
+                    bcc: bccRecipients.length > 0 ? bccRecipients.join(', ') : undefined,
+                    subject: subject,
+                    text: textMessage, // Toujours inclure version texte
+                    ...(isHtml === 'true' ? { html: finalMessage } : {}),
+                    ...(attachments.length > 0 && { attachments: attachments })
+                };
+                
+                await transporter.sendMail(mailOptions);
+                
+                // Enregistrer le suivi
+                emailTracking.set(emailId, {
+                    email: email,
+                    organisation: 'Email Avancé',
+                    subject: subject,
+                    sentAt: new Date().toISOString(),
+                    opened: false,
+                    openedAt: null,
+                    openCount: 0,
+                    type: 'advanced',
+                    replied: false,
+                    hasAttachments: attachments.length > 0
+                });
+                
+                sent++;
+                console.log(`✅ Email avancé envoyé à ${email}`);
+                
+                // Pause entre les envois
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+            } catch (error) {
+                console.error(`❌ Erreur envoi à ${email}:`, error);
+                errors++;
+            }
+        }
+        
+        // Sauvegarder le tracking
+        await saveTrackingToFile();
+        
+        res.json({
+            success: true,
+            sent: sent,
+            errors: errors,
+            total: recipients.length + ccRecipients.length + bccRecipients.length,
+            message: `${sent} emails envoyés avec succès${errors > 0 ? ` (${errors} erreurs)` : ''}`
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur envoi email avancé:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de l\'envoi de l\'email' 
+        });
+    }
+});
+
+// Route pour les envois groupés avancés (avec pièces jointes, formatage HTML, etc.)
+app.post('/api/send-group-advanced-email', upload.array('attachments', 10), async (req, res) => {
+    try {
+        const { to, subject, message, isHtml, sendType, sendSpeed, cc, bcc } = req.body;
+        
+        if (!to || !subject || !message) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Destinataires, sujet et message sont requis' 
+            });
+        }
+        
+        // Parser les destinataires
+        const recipients = Array.isArray(to) ? to : to.split(',').map(email => email.trim());
+        const ccRecipients = cc ? (Array.isArray(cc) ? cc : cc.split(',').map(email => email.trim())) : [];
+        const bccRecipients = bcc ? (Array.isArray(bcc) ? bcc : bcc.split(',').map(email => email.trim())) : [];
+        
+        // Préparer les pièces jointes
+        const attachments = req.files ? req.files.map(file => ({
+            filename: file.originalname,
+            content: file.buffer,
+            contentType: file.mimetype
+        })) : [];
+        
+        // Déterminer la vitesse d'envoi
+        const delays = {
+            slow: 3000,    // 3 secondes
+            normal: 1000,  // 1 seconde
+            fast: 500      // 0.5 seconde
+        };
+        const delay = delays[sendSpeed] || 1000;
+        
+        let sent = 0;
+        let errors = 0;
+        
+        console.log(`📧 Début envoi groupé: ${recipients.length} emails, vitesse: ${sendType}`);
+        
+        for (const email of recipients) {
+            if (!email) continue;
+            
+            try {
+                // Générer un ID de suivi unique
+                const emailId = Buffer.from(`${email}-${Date.now()}`).toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+                
+                // Ajouter le tracking pixel si HTML
+                let finalMessage = message;
+                let textMessage = message.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''); // Version texte
+                
+                if (isHtml === 'true') {
+                    const trackingPixel = `<img src="http://localhost:3000/api/track-open/${emailId}" width="1" height="1" style="display:none;">`;
+                    finalMessage = message + trackingPixel;
+                }
+                
+                const mailOptions = {
+                    from: `"EXPOBETONRDC" <${process.env.SMTP_USER}>`,
+                    to: email,
+                    cc: ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined,
+                    bcc: bccRecipients.length > 0 ? bccRecipients.join(', ') : undefined,
+                    subject: subject,
+                    text: textMessage, // Toujours inclure version texte
+                    ...(isHtml === 'true' ? { html: finalMessage } : {}),
+                    ...(attachments.length > 0 && { attachments: attachments })
+                };
+                
+                await transporter.sendMail(mailOptions);
+                
+                // Enregistrer le suivi
+                emailTracking.set(emailId, {
+                    email: email,
+                    organisation: 'Envoi Groupé',
+                    subject: subject,
+                    sentAt: new Date().toISOString(),
+                    opened: false,
+                    openedAt: null,
+                    openCount: 0,
+                    type: 'group',
+                    replied: false,
+                    hasAttachments: attachments.length > 0,
+                    sendType: sendType
+                });
+                
+                sent++;
+                console.log(`✅ Email groupé envoyé à ${email} (${sent}/${recipients.length})`);
+                
+                // Pause entre les envois selon la vitesse
+                if (sent < recipients.length) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                
+            } catch (error) {
+                console.error(`❌ Erreur envoi groupé à ${email}:`, error);
+                errors++;
+            }
+        }
+        
+        // Sauvegarder le tracking
+        await saveTrackingToFile();
+        
+        // Mettre à jour les contacts comme envoyés
+        importedContacts.forEach(contact => {
+            if (recipients.includes(contact.email)) {
+                contact.sent = true;
+                contact.sentAt = new Date().toISOString();
+            }
+        });
+        await saveContactsToFile();
+        
+        console.log(`📊 Envoi groupé terminé: ${sent} envoyés, ${errors} erreurs`);
+        
+        res.json({
+            success: true,
+            sent: sent,
+            errors: errors,
+            total: recipients.length,
+            message: `${sent} emails envoyés avec succès${errors > 0 ? ` (${errors} erreurs)` : ''}`,
+            sendType: sendType,
+            sendSpeed: sendSpeed
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur envoi groupé avancé:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de l\'envoi groupé' 
+        });
     }
 });
 

@@ -8,6 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expobeton-Email - Gestion d'Emails</title>
+    <link rel="stylesheet" href="email-editor.css">
     <script>
         // Protection : Vérifier l'authentification
         // Vérification JWT
@@ -38,7 +39,18 @@
             if (token) {
                 options.headers['Authorization'] = 'Bearer ' + token;
             }
-            return fetch(url, options);
+            
+            const response = await fetch(url, options);
+            
+            // Si token expiré ou invalide, rediriger vers login
+            if (response.status === 401) {
+                console.warn('Token expiré ou invalide, redirection vers login...');
+                localStorage.removeItem('jwt_token');
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            return response;
         }
     </script>
     <style>
@@ -1573,6 +1585,11 @@
                 <div class="sidebar-header">
                     <h2>Expobeton-Email</h2>
                     <p>Plateforme d'emailing</p>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <a href="https://www.expobetonrdc.com/" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: none; font-size: 0.8em; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 6px; background: rgba(102, 126, 234, 0.1); transition: all 0.3s ease;" onmouseover="this.style.background='rgba(102, 126, 234, 0.2)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(102, 126, 234, 0.1)'; this.style.transform='translateY(0)'">
+                            🌐 www.expobetonrdc.com
+                        </a>
+                    </div>
                 </div>
                 
                 <nav>
@@ -1628,6 +1645,9 @@
                         <div style="margin-bottom: 5px;">
                             <a href="tel:+212600989761" style="color: #667eea; text-decoration: none;">+212 600-989-761</a>
                         </div>
+                        <div style="margin-bottom: 5px;">
+                            <a href="tel:+212669444701" style="color: #667eea; text-decoration: none;">+212 669-444-701</a>
+                        </div>
                         <div style="margin-bottom: 8px;">
                             <a href="mailto:webconsulting66@gmail.com" style="color: #667eea; text-decoration: none;">webconsulting66@gmail.com</a>
                         </div>
@@ -1640,6 +1660,20 @@
                             <a href="/mentions-legales.html" style="color: rgba(255,255,255,0.5); text-decoration: none;">
                                 📋 Mentions légales
                             </a>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 15px 0; padding: 10px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%); border-radius: 8px; font-size: 0.8em; border: 1px solid rgba(102, 126, 234, 0.2);">
+                        <div style="margin-bottom: 8px; text-align: center;">
+                            <strong>🏢 EXPOBETON RDC</strong>
+                        </div>
+                        <div style="text-align: center; margin-bottom: 8px;">
+                            <a href="https://www.expobetonrdc.com/" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: none; font-weight: bold; font-size: 0.9em; display: inline-flex; align-items: center; gap: 5px;">
+                                🌐 www.expobetonrdc.com
+                            </a>
+                        </div>
+                        <div style="text-align: center; font-size: 0.7em; color: rgba(255,255,255,0.6);">
+                            Votre partenaire béton de confiance
                         </div>
                     </div>
                     
@@ -1699,82 +1733,97 @@
                     </div>
                 </section>
                 
-                <!-- Section Envoi Groupé -->
+                <!-- Section Envoi Groupé Avancé -->
                 <section class="content-section" id="send-section">
-                    <div class="card email-form" id="sendCard">
+                    <div class="card">
                         <div class="card-header">
-                            <h2>Envoyer les emails</h2>
+                            <h2>📧 Envoi Groupé Avancé</h2>
+                            <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 0.9em;">
+                                Envoyez des emails professionnels à tous vos contacts avec formatage riche et pièces jointes
+                            </p>
                         </div>
-                        <div class="form-content">
-                            <div class="form-group">
-                                <label for="subject">Sujet</label>
-                                <input type="text" id="subject" placeholder="Ex: Information importante">
+                        
+                        <!-- Options d'envoi groupé -->
+                        <div style="padding: 20px; background: rgba(255,255,255,0.1); border-radius: 8px; margin: 20px;">
+                            <h4 style="color: white; margin-bottom: 15px;">⚙️ Options d'envoi</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div>
+                                    <label style="color: white; font-size: 0.9em;">Nombre d'emails à envoyer</label>
+                                    <input type="number" id="groupEmailCount" placeholder="Tous" min="1" style="width: 100%; padding: 8px; border-radius: 4px; border: none; margin-top: 5px;">
+                                    <small style="color: rgba(255,255,255,0.6);">Disponibles: <span id="maxEmails">0</span> contacts</small>
+                                </div>
+                                <div>
+                                    <label style="color: white; font-size: 0.9em;">Type d'envoi</label>
+                                    <select id="sendType" style="width: 100%; padding: 8px; border-radius: 4px; border: none; margin-top: 5px;">
+                                        <option value="all">Tous les contacts</option>
+                                        <option value="pending">Seulement les emails en attente</option>
+                                        <option value="custom">Nombre personnalisé</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="color: white; font-size: 0.9em;">Vitesse d'envoi</label>
+                                    <select id="sendSpeed" style="width: 100%; padding: 8px; border-radius: 4px; border: none; margin-top: 5px;">
+                                        <option value="normal">Normal (1s/email)</option>
+                                        <option value="slow">Lent (3s/email)</option>
+                                        <option value="fast">Rapide (0.5s/email)</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="message">Message</label>
-                                <textarea id="message" placeholder="Écrivez votre message ici..." rows="6"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label for="emailCount">Nombre d'emails à envoyer</label>
-                                <input type="number" id="emailCount" placeholder="Ex: 100" min="1">
-                                <small style="color: rgba(255,255,255,0.5);">Maximum: <span id="maxEmails">0</span> contacts disponibles</small>
-                            </div>
-                            <div class="form-actions">
-                                <button onclick="sendCustomEmails()" class="success-btn">Envoyer le nombre spécifié</button>
-                                <button onclick="sendEmails(999999)" class="primary-btn">Envoyer à TOUS</button>
+                        </div>
+                        
+                        <!-- Éditeur d'email avancé pour envoi groupé -->
+                        <div id="group-email-editor" style="margin: 20px;"></div>
+                        
+                        <!-- Actions d'envoi groupé -->
+                        <div style="padding: 20px; text-align: center;">
+                            <button onclick="sendGroupEmails()" class="primary-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px 40px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;">
+                                📧 Envoyer aux contacts sélectionnés
+                            </button>
+                            <div style="margin-top: 15px;">
+                                <small style="color: rgba(255,255,255,0.6);">
+                                    Les emails seront envoyés avec suivi des ouvertures et statistiques en temps réel
+                                </small>
                             </div>
                         </div>
                     </div>
                 </section>
                 
-                <!-- Section Envoi Manuel -->
+                <!-- Section Envoi Manuel Avancé -->
                 <section class="content-section" id="manual-section">
-                    <div class="card manual-send-section">
+                    <div class="card">
                         <div class="card-header">
-                            <h2>✍️ Envoi manuel d'emails</h2>
+                            <h2>✉️ Envoi Manuel Avancé</h2>
+                            <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 0.9em;">
+                                Ajoutez manuellement des destinataires et envoyez des emails personnalisés
+                            </p>
                         </div>
-                        <div class="form-content">
-                            <div class="form-group">
-                                <label>Ajouter des destinataires manuellement</label>
-                                <div class="manual-inputs" id="manualInputs">
-                                    <div class="input-row">
-                                        <input type="text" placeholder="Organisation" class="manual-org">
-                                        <input type="email" placeholder="Email" class="manual-email">
-                                        <button class="remove-btn" onclick="removeManualRow(this)">×</button>
-                                    </div>
-                                </div>
-                                <button class="add-row-btn" onclick="addManualRow()">
-                                    <span>➕</span>
-                                    <span>Ajouter un destinataire</span>
-                                </button>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Liste des destinataires manuels</label>
-                                <div class="manual-emails-list" id="manualEmailsList">
-                                    <p style="text-align: center; color: #999;">Aucun destinataire ajouté</p>
+                        
+                        <!-- Formulaire d'ajout manuel -->
+                        <div style="padding: 20px;">
+                            <h4 style="color: white; margin-bottom: 15px;">👥 Destinataires</h4>
+                            <div id="manualInputs" class="manual-inputs">
+                                <div class="input-row">
+                                    <input type="text" placeholder="Organisation" class="manual-org">
+                                    <input type="email" placeholder="Email" class="manual-email">
+                                    <button class="remove-btn" onclick="removeManualRow(this)">×</button>
                                 </div>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="manualSubject">Sujet</label>
-                                <input type="text" id="manualSubject" placeholder="Ex: Information personnalisée">
+                            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                                <button onclick="addManualRow()" class="secondary-btn">+ Ajouter un destinataire</button>
+                                <button onclick="saveAllManualRecipients()" class="primary-btn">💾 Sauvegarder tout</button>
+                                <button onclick="clearManualEmails()" class="danger-btn">Vider tout</button>
                             </div>
-                            <div class="form-group">
-                                <label for="manualMessage">Message</label>
-                                <textarea id="manualMessage" placeholder="Écrivez votre message personnalisé..." rows="6"></textarea>
-                            </div>
-                            
-                            <div class="manual-actions">
-                                <button class="send-manual-btn" onclick="sendManualEmails()">
-                                    <span>📧</span>
-                                    <span>Envoyer aux destinataires manuels</span>
-                                </button>
-                                <button class="clear-manual-btn" onclick="clearManualEmails()">
-                                    <span>🗑️</span>
-                                    <span>Vider la liste</span>
-                                </button>
-                            </div>
+                        </div>
+                        
+                        <!-- Éditeur d'email avancé pour envoi manuel -->
+                        <div id="advanced-email-editor" style="margin: 20px;"></div>
+                        
+                        <!-- Actions d'envoi manuel -->
+                        <div style="padding: 20px; text-align: center;">
+                            <button onclick="sendManualEmails()" class="primary-btn" style="font-size: 1.1em; padding: 15px 30px;">
+                                📧 Envoyer les Emails Manuels
+                            </button>
                         </div>
                     </div>
                 </section>
@@ -1955,13 +2004,40 @@
                 <button class="remove-btn" onclick="removeManualRow(this)">×</button>
             `;
             container.appendChild(row);
+            
+            // Ajouter un écouteur pour sauvegarder automatiquement quand l'email est saisi
+            const emailInput = row.querySelector('.manual-email');
+            const orgInput = row.querySelector('.manual-org');
+            
+            emailInput.addEventListener('blur', async function() {
+                updateManualEmailsList(); // Mettre à jour la liste d'abord
+                if (this.value.trim()) {
+                    await saveManualRecipients(); // Puis sauvegarder
+                }
+            });
+            
+            orgInput.addEventListener('blur', async function() {
+                updateManualEmailsList(); // Mettre à jour la liste d'abord
+                const emailInput = this.parentElement.querySelector('.manual-email');
+                if (emailInput.value.trim()) {
+                    await saveManualRecipients(); // Puis sauvegarder
+                }
+            });
+        }
+        
+        // Sauvegarder tous les destinataires manuels manuellement
+        async function saveAllManualRecipients() {
+            updateManualEmailsList(); // Mettre à jour la liste d'abord
+            await saveManualRecipients(); // Puis sauvegarder
+            showAlert('💾 Destinataires sauvegardés avec succès !', 'success');
         }
         
         // Supprimer une ligne d'entrée manuelle
-        function removeManualRow(button) {
+        async function removeManualRow(button) {
             const row = button.parentElement;
             row.remove();
-            updateManualEmailsList();
+            updateManualEmailsList(); // Mettre à jour la liste d'abord
+            await saveManualRecipients(); // Puis sauvegarder
         }
         
         // Charger les destinataires manuels depuis le serveur
@@ -2033,8 +2109,7 @@
                 }
             });
             
-            // Sauvegarder automatiquement après chaque modification
-            saveManualRecipients();
+            console.log(`📝 Mise à jour de la liste: ${manualEmails.length} destinataires manuels`);
         }
         
         // Supprimer un email manuel spécifique
@@ -2103,8 +2178,19 @@
                 return;
             }
             
-            const subject = document.getElementById('manualSubject').value.trim();
-            const message = document.getElementById('manualMessage').value.trim();
+            // Utiliser l'éditeur avancé si disponible
+            let subject, message, attachments = [];
+            
+            if (window.emailEditor) {
+                const emailData = window.emailEditor.getEmailData();
+                subject = emailData.subject;
+                message = emailData.message;
+                attachments = emailData.attachments || [];
+            } else {
+                // Fallback sur les anciens champs
+                subject = document.getElementById('manualSubject')?.value.trim() || '';
+                message = document.getElementById('manualMessage')?.value.trim() || '';
+            }
             
             if (!subject || !message) {
                 showAlert('❌ Veuillez remplir le sujet et le message', 'error');
@@ -2131,17 +2217,25 @@
                     body: JSON.stringify({ 
                         subject, 
                         message, 
-                        contacts: manualEmails 
+                        contacts: manualEmails,
+                        attachments: attachments,
+                        isHtml: true
                     })
                 });
                 
                 const data = await res.json();
                 
                 if (data.success) {
-                    showAlert(`✅ ${data.sent} emails envoyés avec succès!`, 'success');
+                    // Popup spécial pour envoi manuel réussi
+                    showManualEmailSuccessPopup(data.sent, manualEmails.length);
                     // Vider les champs après envoi réussi
-                    document.getElementById('manualSubject').value = '';
-                    document.getElementById('manualMessage').value = '';
+                    if (window.emailEditor) {
+                        window.emailEditor.clearForm();
+                    } else {
+                        // Fallback sur les anciens champs
+                        document.getElementById('manualSubject').value = '';
+                        document.getElementById('manualMessage').value = '';
+                    }
                     // Garder les destinataires pour pouvoir réutiliser
                     saveManualRecipients(); // Sauvegarder la liste actuelle
                     
@@ -3543,15 +3637,676 @@
             }
         }
         
-        // Afficher une alerte
-        function showAlert(message, type = 'info') {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = 'alert alert-' + type;
-            alert.style.display = 'block';
+        // Popup spécial pour envoi groupé réussi
+        function showGroupEmailSuccessPopup(sent, total, sendType, sendSpeed) {
+            const alertContainer = document.createElement('div');
+            alertContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 480px;
+                animation: slideInRight 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            `;
             
+            const sendTypeText = {
+                'all': 'Tous les contacts',
+                'pending': 'Contacts en attente',
+                'custom': 'Nombre personnalisé'
+            };
+            
+            const sendSpeedText = {
+                'slow': 'Lent (3s)',
+                'normal': 'Normal (1s)',
+                'fast': 'Rapide (0.5s)'
+            };
+            
+            alertContainer.innerHTML = `
+                <div style="
+                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 25%, #4facfe 50%, #00f2fe 75%, #f093fb 100%);
+                    background-size: 400% 400%;
+                    animation: gradientShift 3s ease infinite;
+                    color: white;
+                    padding: 25px;
+                    border-radius: 20px;
+                    box-shadow: 0 20px 60px rgba(240, 147, 251, 0.4), 0 0 0 2px rgba(255,255,255,0.2);
+                    position: relative;
+                    overflow: hidden;
+                    backdrop-filter: blur(15px);
+                ">
+                    <!-- Particules animées groupées -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        pointer-events: none;
+                        overflow: hidden;
+                    ">
+                        <div style="position: absolute; top: -20px; left: 10%; animation: float-up 3.8s linear infinite; font-size: 14px;">📧</div>
+                        <div style="position: absolute; top: -20px; left: 30%; animation: float-up 3.2s linear infinite 0.6s; font-size: 12px;">📨</div>
+                        <div style="position: absolute; top: -20px; left: 50%; animation: float-up 4.1s linear infinite 1.2s; font-size: 16px;">🎯</div>
+                        <div style="position: absolute; top: -20px; left: 70%; animation: float-up 3.5s linear infinite 0.4s; font-size: 13px;">📊</div>
+                        <div style="position: absolute; top: -20px; left: 90%; animation: float-up 4.3s linear infinite 0.9s; font-size: 15px;">🚀</div>
+                    </div>
+                    
+                    <!-- Cercles décoratifs groupés -->
+                    <div style="
+                        position: absolute;
+                        top: -60px;
+                        right: -60px;
+                        width: 180px;
+                        height: 180px;
+                        background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%);
+                        border-radius: 50%;
+                        animation: pulse 2.5s ease-in-out infinite;
+                    "></div>
+                    
+                    <div style="
+                        position: absolute;
+                        bottom: -40px;
+                        left: -40px;
+                        width: 120px;
+                        height: 120px;
+                        background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+                        border-radius: 50%;
+                        animation: pulse 2.5s ease-in-out infinite 1.2s;
+                    "></div>
+                    
+                    <!-- Ligne brillante supérieure -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 5px;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+                        animation: shimmer 2s infinite;
+                    "></div>
+                    
+                    <!-- Contenu principal -->
+                    <div style="position: relative; z-index: 1;">
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                        ">
+                            <div style="
+                                font-size: 42px;
+                                animation: celebrate-bounce 1.3s ease-in-out infinite;
+                                filter: drop-shadow(0 0 25px rgba(255,255,255,0.9));
+                                text-shadow: 0 0 35px rgba(255,255,255,0.7);
+                            ">📊</div>
+                            <div>
+                                <div style="font-size: 14px; opacity: 0.95; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; text-shadow: 0 2px 6px rgba(0,0,0,0.4);">Campagne Réussie</div>
+                                <div style="font-size: 22px; font-weight: 800; text-shadow: 0 3px 8px rgba(0,0,0,0.5); margin-top: 3px;">
+                                    ${sent} Email${sent > 1 ? 's' : ''} Envoyé${sent > 1 ? 's' : ''} !
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Statistiques détaillées groupées -->
+                        <div style="
+                            background: rgba(255,255,255,0.15);
+                            border-radius: 12px;
+                            padding: 15px;
+                            margin: 15px 0;
+                            backdrop-filter: blur(10px);
+                            border: 1px solid rgba(255,255,255,0.2);
+                        ">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="opacity: 0.9;">Total:</span>
+                                    <span style="font-weight: 700;">${total}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="opacity: 0.9;">Succès:</span>
+                                    <span style="font-weight: 700; color: #4ade80;">${sent}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="opacity: 0.9;">Type:</span>
+                                    <span style="font-weight: 700;">${sendTypeText[sendType]}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="opacity: 0.9;">Vitesse:</span>
+                                    <span style="font-weight: 700;">${sendSpeedText[sendSpeed]}</span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: center;">
+                                <span style="opacity: 0.9;">Taux de réussite:</span>
+                                <span style="font-weight: 700; margin-left: 5px; color: #4ade80; font-size: 14px;">${Math.round((sent/total) * 100)}%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Message de confirmation groupé -->
+                        <div style="
+                            font-size: 13px;
+                            opacity: 0.9;
+                            margin-bottom: 15px;
+                            text-align: center;
+                            font-style: italic;
+                        ">
+                            📧 Votre campagne d'emails groupés a été envoyée avec succès !
+                        </div>
+                        
+                        <!-- Boutons d'action groupés -->
+                        <div style="
+                            display: flex;
+                            gap: 12px;
+                            margin-top: 20px;
+                            justify-content: center;
+                        ">
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                                background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%);
+                                border: 1px solid rgba(255,255,255,0.4);
+                                color: white;
+                                padding: 12px 20px;
+                                border-radius: 12px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                font-weight: 700;
+                                transition: all 0.3s ease;
+                                backdrop-filter: blur(10px);
+                                text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+                            " onmouseover="this.style.background='linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.3) 100%)'; this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.3)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%)'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.2)'">
+                                🎊 Excellent !
+                            </button>
+                            <button onclick="this.parentElement.parentElement.parentElement.remove(); window.location.reload();" style="
+                                background: linear-gradient(135deg, rgba(79, 172, 254, 0.3) 0%, rgba(0, 242, 254, 0.2) 100%);
+                                border: 1px solid rgba(79, 172, 254, 0.5);
+                                color: white;
+                                padding: 12px 20px;
+                                border-radius: 12px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                font-weight: 700;
+                                transition: all 0.3s ease;
+                                backdrop-filter: blur(10px);
+                                text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                box-shadow: 0 6px 20px rgba(79, 172, 254, 0.2);
+                            " onmouseover="this.style.background='linear-gradient(135deg, rgba(79, 172, 254, 0.4) 0%, rgba(0, 242, 254, 0.3) 100%)'; this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 10px 30px rgba(79, 172, 254, 0.3)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(79, 172, 254, 0.3) 0%, rgba(0, 242, 254, 0.2) 100%)'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 20px rgba(79, 172, 254, 0.2)'">
+                                🔄 Nouvelle Campagne
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Animations CSS avancées -->
+                <style>
+                    @keyframes slideInRight {
+                        from {
+                            transform: translateX(120%) rotate(-5deg) scale(0.7);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0) rotate(0deg) scale(1);
+                            opacity: 1;
+                        }
+                    }
+                    @keyframes gradientShift {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                    @keyframes celebrate-bounce {
+                        0%, 100% { transform: scale(1) rotate(0deg); }
+                        25% { transform: scale(1.3) rotate(-8deg); }
+                        50% { transform: scale(1.2) rotate(5deg); }
+                        75% { transform: scale(1.25) rotate(-3deg); }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 0.15; }
+                        50% { transform: scale(1.3); opacity: 0.25; }
+                    }
+                    @keyframes shimmer {
+                        0% { transform: translateX(-100%); }
+                        100% { transform: translateX(100%); }
+                    }
+                    @keyframes float-up {
+                        0% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+                        10% { opacity: 1; }
+                        90% { opacity: 1; }
+                        100% { transform: translateY(-150px) rotate(360deg); opacity: 0; }
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(alertContainer);
+            
+            // Auto-suppression après 10 secondes
             setTimeout(() => {
-                alert.style.display = 'none';
+                alertContainer.style.animation = 'slideInRight 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+                setTimeout(() => alertContainer.remove(), 600);
+            }, 10000);
+        }
+        
+        // Popup spécial pour envoi d'email manuel réussi
+        function showManualEmailSuccessPopup(sent, total) {
+            const alertContainer = document.createElement('div');
+            alertContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 450px;
+                animation: slideInRight 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            `;
+            
+            alertContainer.innerHTML = `
+                <div style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #667eea 75%, #764ba2 100%);
+                    background-size: 400% 400%;
+                    animation: gradientShift 3s ease infinite;
+                    color: white;
+                    padding: 25px;
+                    border-radius: 20px;
+                    box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4), 0 0 0 2px rgba(255,255,255,0.2);
+                    position: relative;
+                    overflow: hidden;
+                    backdrop-filter: blur(15px);
+                ">
+                    <!-- Particules animées -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        pointer-events: none;
+                        overflow: hidden;
+                    ">
+                        <div style="position: absolute; top: -20px; left: 5%; animation: float-up 4s linear infinite; font-size: 14px;">📧</div>
+                        <div style="position: absolute; top: -20px; left: 25%; animation: float-up 3.5s linear infinite 0.5s; font-size: 12px;">✨</div>
+                        <div style="position: absolute; top: -20px; left: 45%; animation: float-up 4.5s linear infinite 1s; font-size: 16px;">🎉</div>
+                        <div style="position: absolute; top: -20px; left: 65%; animation: float-up 3s linear infinite 0.3s; font-size: 13px;">📨</div>
+                        <div style="position: absolute; top: -20px; left: 85%; animation: float-up 4.2s linear infinite 0.8s; font-size: 15px;">🚀</div>
+                    </div>
+                    
+                    <!-- Cercles décoratifs -->
+                    <div style="
+                        position: absolute;
+                        top: -50px;
+                        right: -50px;
+                        width: 150px;
+                        height: 150px;
+                        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+                        border-radius: 50%;
+                        animation: pulse 2s ease-in-out infinite;
+                    "></div>
+                    
+                    <div style="
+                        position: absolute;
+                        bottom: -30px;
+                        left: -30px;
+                        width: 100px;
+                        height: 100px;
+                        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+                        border-radius: 50%;
+                        animation: pulse 2s ease-in-out infinite 1s;
+                    "></div>
+                    
+                    <!-- Ligne brillante supérieure -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 5px;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+                        animation: shimmer 2s infinite;
+                    "></div>
+                    
+                    <!-- Contenu principal -->
+                    <div style="position: relative; z-index: 1;">
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 15px;
+                            margin-bottom: 15px;
+                        ">
+                            <div style="
+                                font-size: 40px;
+                                animation: celebrate-bounce 1.2s ease-in-out infinite;
+                                filter: drop-shadow(0 0 20px rgba(255,255,255,0.9));
+                                text-shadow: 0 0 30px rgba(255,255,255,0.7);
+                            ">🚀</div>
+                            <div>
+                                <div style="font-size: 14px; opacity: 0.95; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; text-shadow: 0 2px 6px rgba(0,0,0,0.4);">Mission Accomplie</div>
+                                <div style="font-size: 20px; font-weight: 800; text-shadow: 0 3px 8px rgba(0,0,0,0.5); margin-top: 3px;">
+                                    ${sent} Email${sent > 1 ? 's' : ''} Envoyé${sent > 1 ? 's' : ''} !
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Statistiques détaillées -->
+                        <div style="
+                            background: rgba(255,255,255,0.15);
+                            border-radius: 12px;
+                            padding: 12px;
+                            margin: 15px 0;
+                            backdrop-filter: blur(10px);
+                            border: 1px solid rgba(255,255,255,0.2);
+                        ">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                                <div>
+                                    <span style="opacity: 0.9;">Destinataires:</span>
+                                    <span style="font-weight: 700; margin-left: 5px;">${total}</span>
+                                </div>
+                                <div>
+                                    <span style="opacity: 0.9;">Succès:</span>
+                                    <span style="font-weight: 700; margin-left: 5px; color: #4ade80;">${sent}</span>
+                                </div>
+                                <div>
+                                    <span style="opacity: 0.9;">Taux:</span>
+                                    <span style="font-weight: 700; margin-left: 5px; color: #4ade80;">${Math.round((sent/total) * 100)}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Message de confirmation -->
+                        <div style="
+                            font-size: 13px;
+                            opacity: 0.9;
+                            margin-bottom: 15px;
+                            text-align: center;
+                            font-style: italic;
+                        ">
+                            📧 Vos emails professionnels ont été envoyés avec succès !
+                        </div>
+                        
+                        <!-- Boutons d'action -->
+                        <div style="
+                            display: flex;
+                            gap: 12px;
+                            margin-top: 20px;
+                            justify-content: center;
+                        ">
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                                background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%);
+                                border: 1px solid rgba(255,255,255,0.4);
+                                color: white;
+                                padding: 12px 20px;
+                                border-radius: 12px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                font-weight: 700;
+                                transition: all 0.3s ease;
+                                backdrop-filter: blur(10px);
+                                text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+                            " onmouseover="this.style.background='linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.3) 100%)'; this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.3)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%)'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.2)'">
+                                🎊 Super !
+                            </button>
+                            <button onclick="this.parentElement.parentElement.parentElement.remove(); window.location.reload();" style="
+                                background: linear-gradient(135deg, rgba(74, 222, 128, 0.3) 0%, rgba(74, 222, 128, 0.2) 100%);
+                                border: 1px solid rgba(74, 222, 128, 0.5);
+                                color: white;
+                                padding: 12px 20px;
+                                border-radius: 12px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                font-weight: 700;
+                                transition: all 0.3s ease;
+                                backdrop-filter: blur(10px);
+                                text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                box-shadow: 0 6px 20px rgba(74, 222, 128, 0.2);
+                            " onmouseover="this.style.background='linear-gradient(135deg, rgba(74, 222, 128, 0.4) 0%, rgba(74, 222, 128, 0.3) 100%)'; this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 10px 30px rgba(74, 222, 128, 0.3)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(74, 222, 128, 0.3) 0%, rgba(74, 222, 128, 0.2) 100%)'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 6px 20px rgba(74, 222, 128, 0.2)'">
+                                🔄 Nouvel Envoi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Animations CSS avancées -->
+                <style>
+                    @keyframes slideInRight {
+                        from {
+                            transform: translateX(120%) rotate(-5deg) scale(0.7);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0) rotate(0deg) scale(1);
+                            opacity: 1;
+                        }
+                    }
+                    @keyframes gradientShift {
+                        0% { background-position: 0% 50%; }
+                        50% { background-position: 100% 50%; }
+                        100% { background-position: 0% 50%; }
+                    }
+                    @keyframes celebrate-bounce {
+                        0%, 100% { transform: scale(1) rotate(0deg); }
+                        25% { transform: scale(1.3) rotate(-8deg); }
+                        50% { transform: scale(1.2) rotate(5deg); }
+                        75% { transform: scale(1.25) rotate(-3deg); }
+                    }
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); opacity: 0.15; }
+                        50% { transform: scale(1.3); opacity: 0.25; }
+                    }
+                    @keyframes shimmer {
+                        0% { transform: translateX(-100%); }
+                        100% { transform: translateX(100%); }
+                    }
+                    @keyframes float-up {
+                        0% { transform: translateY(0px) rotate(0deg); opacity: 0; }
+                        10% { opacity: 1; }
+                        90% { opacity: 1; }
+                        100% { transform: translateY(-150px) rotate(360deg); opacity: 0; }
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(alertContainer);
+            
+            // Auto-suppression après 8 secondes
+            setTimeout(() => {
+                alertContainer.style.animation = 'slideInRight 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+                setTimeout(() => alertContainer.remove(), 600);
+            }, 8000);
+        }
+        
+        // Afficher une alerte moderne
+        function showAlert(message, type = 'info') {
+            // Créer un conteneur pour l'alerte
+            const alertContainer = document.createElement('div');
+            alertContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                max-width: 400px;
+                animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            `;
+            
+            // Déterminer les styles selon le type
+            let bgColor, iconColor, icon, title;
+            switch(type) {
+                case 'success':
+                    bgColor = 'linear-gradient(135deg, #00d2ff 0%, #3a7bd5 25%, #00d2ff 50%, #3a7bd5 75%, #00d2ff 100%)';
+                    iconColor = '#ffffff';
+                    icon = '🎉';
+                    title = 'Mission Accomplie';
+                    break;
+                case 'error':
+                    bgColor = 'linear-gradient(135deg, #ff4757 0%, #c44569 50%, #a8326a 100%)';
+                    iconColor = '#ffffff';
+                    icon = '⚠️';
+                    title = 'Attention';
+                    break;
+                case 'info':
+                    bgColor = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+                    iconColor = '#ffffff';
+                    icon = 'ℹ️';
+                    title = 'Information';
+                    break;
+                default:
+                    bgColor = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
+                    iconColor = '#ffffff';
+                    icon = '📢';
+                    title = 'Notification';
+            }
+            
+            alertContainer.innerHTML = `
+                <div style="
+                    background: ${bgColor};
+                    color: white;
+                    padding: 20px;
+                    border-radius: 16px;
+                    box-shadow: 0 15px 50px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.2);
+                    position: relative;
+                    overflow: hidden;
+                    backdrop-filter: blur(10px);
+                ">
+                    <!-- Confettis animés -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        pointer-events: none;
+                        overflow: hidden;
+                    ">
+                        <div style="position: absolute; top: -10px; left: 10%; animation: confetti-fall 3s linear infinite; font-size: 12px;">🎊</div>
+                        <div style="position: absolute; top: -10px; left: 30%; animation: confetti-fall 2.5s linear infinite 0.5s; font-size: 10px;">🎈</div>
+                        <div style="position: absolute; top: -10px; left: 50%; animation: confetti-fall 3.5s linear infinite 1s; font-size: 14px;">✨</div>
+                        <div style="position: absolute; top: -10px; left: 70%; animation: confetti-fall 2.8s linear infinite 0.3s; font-size: 11px;">🎉</div>
+                        <div style="position: absolute; top: -10px; left: 90%; animation: confetti-fall 3.2s linear infinite 0.7s; font-size: 13px;">⭐</div>
+                    </div>
+                    
+                    <!-- Fond décoratif animé -->
+                    <div style="
+                        position: absolute;
+                        top: -50%;
+                        right: -50%;
+                        width: 200%;
+                        height: 200%;
+                        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+                        pointer-events: none;
+                        animation: celebrate 2s ease-in-out infinite;
+                    "></div>
+                    
+                    <!-- Lignes décoratives brillantes -->
+                    <div style="
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 4px;
+                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+                        animation: shimmer 2s infinite;
+                    "></div>
+                    
+                    <!-- Contenu principal -->
+                    <div style="position: relative; z-index: 1;">
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            gap: 12px;
+                            margin-bottom: 12px;
+                        ">
+                            <div style="
+                                font-size: 32px;
+                                animation: celebrate-bounce 1s ease-in-out infinite;
+                                filter: drop-shadow(0 0 15px rgba(255,255,255,0.8));
+                                text-shadow: 0 0 20px rgba(255,255,255,0.6);
+                            ">${icon}</div>
+                            <div>
+                                <div style="font-size: 13px; opacity: 0.95; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${title}</div>
+                                <div style="font-size: 17px; font-weight: 700; text-shadow: 0 3px 6px rgba(0,0,0,0.4);">${message}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Boutons d'action célébratoires -->
+                        <div style="
+                            display: flex;
+                            gap: 10px;
+                            margin-top: 15px;
+                            justify-content: flex-end;
+                        ">
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="
+                                background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%);
+                                border: 1px solid rgba(255,255,255,0.4);
+                                color: white;
+                                padding: 10px 18px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 13px;
+                                font-weight: 700;
+                                transition: all 0.3s ease;
+                                backdrop-filter: blur(10px);
+                                text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                            " onmouseover="this.style.background='linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.25) 100%)'; this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.3)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%)'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)'">
+                                🎊 Super !
+                            </button>
+                            ${type === 'success' ? `
+                            <button onclick="this.parentElement.parentElement.parentElement.remove(); window.location.reload();" style="
+                                background: linear-gradient(135deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0.2) 100%);
+                                border: 1px solid rgba(255,215,0,0.5);
+                                color: white;
+                                padding: 10px 18px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 13px;
+                                font-weight: 700;
+                                transition: all 0.3s ease;
+                                backdrop-filter: blur(10px);
+                                text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                                box-shadow: 0 4px 15px rgba(255,215,0,0.2);
+                            " onmouseover="this.style.background='linear-gradient(135deg, rgba(255,215,0,0.4) 0%, rgba(255,215,0,0.3) 100%)'; this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 8px 25px rgba(255,215,0,0.3)'" onmouseout="this.style.background='linear-gradient(135deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0.2) 100%)'; this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(255,215,0,0.2)'">
+                                🔄 Nouvel envoi
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Animations CSS célébratoires -->
+                <style>
+                    @keyframes slideInRight {
+                        from {
+                            transform: translateX(100%) rotate(-3deg) scale(0.8);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(0) rotate(0deg) scale(1);
+                            opacity: 1;
+                        }
+                    }
+                    @keyframes celebrate-bounce {
+                        0%, 100% { transform: scale(1) rotate(0deg); }
+                        25% { transform: scale(1.2) rotate(-5deg); }
+                        50% { transform: scale(1.1) rotate(3deg); }
+                        75% { transform: scale(1.15) rotate(-2deg); }
+                    }
+                    @keyframes celebrate {
+                        0%, 100% { transform: scale(1); opacity: 0.2; }
+                        50% { transform: scale(1.2); opacity: 0.3; }
+                    }
+                    @keyframes shimmer {
+                        0% { transform: translateX(-100%); }
+                        100% { transform: translateX(100%); }
+                    }
+                    @keyframes confetti-fall {
+                        0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+                        10% { opacity: 1; }
+                        90% { opacity: 1; }
+                        100% { transform: translateY(100px) rotate(360deg); opacity: 0; }
+                    }
+                </style>
+            `;
+            
+            document.body.appendChild(alertContainer);
+            
+            // Auto-suppression après 5 secondes
+            setTimeout(() => {
+                alertContainer.style.animation = 'slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) reverse';
+                setTimeout(() => alertContainer.remove(), 500);
             }, 5000);
         }
         
@@ -3565,55 +4320,146 @@
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: rgba(0, 0, 0, 0.75);
-                    backdrop-filter: blur(6px);
+                    background: rgba(0, 0, 0, 0.85);
+                    backdrop-filter: blur(12px);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     z-index: 10000;
+                    animation: fadeIn 0.3s ease-out;
                 `;
                 
                 // Adapter l'icône et le message selon le type d'action
-                const isDeletion = options.title.includes('Suppression');
-                const icon = isDeletion ? '🗑️' : (options.title.includes('Massif') ? '🚀' : '📧');
+                const isDeletion = options.title.includes('Suppression') || options.title.includes('Vidage');
+                const isMassive = options.title.includes('Massif');
+                const icon = isDeletion ? '⚠️' : (isMassive ? '🚀' : '📧');
                 const mainMessage = isDeletion 
                     ? `Vous allez supprimer <strong>${options.emailsToSend}</strong> contacts`
                     : `Vous allez envoyer <strong>${options.emailsToSend}</strong> emails`;
                 
                 modal.innerHTML = `
-                    <div style="background: linear-gradient(180deg, ${isDeletion ? '#2d1b1b' : '#2b2f3a'} 0%, ${isDeletion ? '#1f1414' : '#1f2430'} 100%); border-radius: 12px; padding: 30px; max-width: 450px; width: 90%; box-shadow: 0 12px 40px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.04); text-align: center; color: #fff;">
-                        <div style="font-size: 2.5em; margin-bottom: 15px;">${icon}</div>
-                        <h3 style="margin-bottom: 15px; color: ${isDeletion ? '#ff6b6b' : '#fff'};">${options.title}</h3>
-                        <p style="margin-bottom: 10px;">${mainMessage}</p>
+                    <div style="background: linear-gradient(135deg, ${isDeletion ? '#dc2626' : '#667eea'} 0%, ${isDeletion ? '#b91c1c' : '#764ba2'} 100%); border-radius: 20px; padding: 40px; max-width: 500px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1); text-align: center; color: #fff; position: relative; overflow: hidden; animation: slideUp 0.4s ease-out;">
+                        <!-- Fond décoratif -->
+                        <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); pointer-events: none;"></div>
+                        
+                        <!-- Icône animée -->
+                        <div style="font-size: 3.5em; margin-bottom: 20px; animation: pulse 2s infinite; position: relative; z-index: 1;">${icon}</div>
+                        
+                        <!-- Titre -->
+                        <h3 style="margin-bottom: 20px; color: #fff; font-size: 1.4em; font-weight: 700; position: relative; z-index: 1;">${options.title}</h3>
+                        
+                        <!-- Message principal -->
+                        <p style="margin-bottom: 15px; font-size: 1.1em; position: relative; z-index: 1;">${mainMessage}</p>
+                        
+                        <!-- Détails supplémentaires -->
                         ${isDeletion ? `
-                            <p style="font-size: 0.9em; color: #ff9999; margin-bottom: 15px;">
-                                ⚠️ Cette action est <strong>irréversible</strong>
-                            </p>
-                            ${options.pendingContacts > 0 ? `
-                                <p style="font-size: 0.85em; color: #ffc107; margin-bottom: 20px;">
-                                    📧 ${options.pendingContacts} emails non envoyés seront aussi supprimés
+                            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 25px; backdrop-filter: blur(10px); position: relative; z-index: 1;">
+                                <p style="font-size: 0.95em; color: #fecaca; margin: 0;">
+                                    ⚠️ Cette action est <strong>irréversible</strong>
                                 </p>
-                            ` : ''}
+                                ${options.pendingContacts > 0 ? `
+                                    <p style="font-size: 0.9em; color: #fde68a; margin: 8px 0 0 0;">
+                                        📧 ${options.pendingContacts} emails non envoyés seront aussi supprimés
+                                    </p>
+                                ` : ''}
+                            </div>
                         ` : `
-                            <p style="font-size: 0.9em; color: #cbd5e1; margin-bottom: 20px;">Sujet: ${options.subject}</p>
+                            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; margin-bottom: 25px; backdrop-filter: blur(10px); position: relative; z-index: 1;">
+                                <p style="font-size: 0.95em; color: #e0e7ff; margin: 0;">
+                                    📝 Sujet: <strong>${options.subject || 'Non spécifié'}</strong>
+                                </p>
+                                ${options.totalContacts ? `
+                                    <p style="font-size: 0.9em; color: #c7d2fe; margin: 8px 0 0 0;">
+                                        📊 Total contacts: ${options.totalContacts}
+                                    </p>
+                                ` : ''}
+                            </div>
                         `}
-                        <div style="display: flex; gap: 10px; justify-content: center;">
-                            <button id="cancelBtn" style="padding: 10px 20px; border: 1px solid ${isDeletion ? '#ff6b6b' : '#667eea'}; background: transparent; color: ${isDeletion ? '#ff6b6b' : '#667eea'}; border-radius: 6px; cursor: pointer;">Annuler</button>
-                            <button id="confirmBtn" style="padding: 10px 20px; border: none; background: ${isDeletion ? '#ff4757' : '#667eea'}; color: white; border-radius: 6px; cursor: pointer;">${isDeletion ? 'Supprimer' : 'Confirmer'}</button>
+                        
+                        <!-- Boutons d'action -->
+                        <div style="display: flex; gap: 15px; justify-content: center; position: relative; z-index: 1;">
+                            <button id="cancelBtn" style="padding: 14px 28px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; border-radius: 12px; cursor: pointer; font-size: 1em; font-weight: 600; backdrop-filter: blur(10px); transition: all 0.3s ease; hover: { background: rgba(255,255,255,0.2); transform: translateY(-2px); }" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)'">
+                                ❌ Annuler
+                            </button>
+                            <button id="confirmBtn" style="padding: 14px 28px; border: none; background: linear-gradient(135deg, ${isDeletion ? '#ef4444' : '#10b981'} 0%, ${isDeletion ? '#dc2626' : '#059669'} 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 1em; font-weight: 700; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: all 0.3s ease; position: relative; overflow: hidden;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 35px rgba(0,0,0,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(0,0,0,0.3)'">
+                                <span style="position: relative; z-index: 1;">${isDeletion ? '🗑️ Supprimer' : '✅ Confirmer l\'envoi'}</span>
+                            </button>
                         </div>
                     </div>
+                    
+                    <!-- Animations CSS -->
+                    <style>
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes slideUp {
+                            from { transform: translateY(30px); opacity: 0; }
+                            to { transform: translateY(0); opacity: 1; }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { transform: scale(1); }
+                            50% { transform: scale(1.05); }
+                        }
+                        
+                        /* Responsive pour les popups */
+                        @media (max-width: 480px) {
+                            .modal-content > div {
+                                padding: 25px 20px !important;
+                                margin: 10px !important;
+                                max-width: 95% !important;
+                            }
+                            
+                            .modal-content h3 {
+                                font-size: 1.2em !important;
+                            }
+                            
+                            .modal-content p {
+                                font-size: 0.9em !important;
+                            }
+                            
+                            .modal-content button {
+                                padding: 12px 20px !important;
+                                font-size: 0.9em !important;
+                                width: 100% !important;
+                                margin: 5px 0 !important;
+                            }
+                        }
+                        
+                        @media (max-width: 380px) {
+                            .modal-content > div {
+                                padding: 20px 15px !important;
+                            }
+                            
+                            .modal-content button {
+                                padding: 14px 16px !important;
+                                font-size: 0.85em !important;
+                            }
+                        }
+                    </style>
                 `;
                 document.body.appendChild(modal);
                 
                 // Ajouter les écouteurs d'événements
                 modal.querySelector('#cancelBtn').addEventListener('click', () => {
-                    modal.remove();
+                    modal.style.animation = 'fadeIn 0.3s ease-out reverse';
+                    setTimeout(() => modal.remove(), 300);
                     resolve(false);
                 });
                 
                 modal.querySelector('#confirmBtn').addEventListener('click', () => {
-                    modal.remove();
+                    modal.style.animation = 'fadeIn 0.3s ease-out reverse';
+                    setTimeout(() => modal.remove(), 300);
                     resolve(true);
+                });
+                
+                // Fermer au clic en dehors
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.animation = 'fadeIn 0.3s ease-out reverse';
+                        setTimeout(() => modal.remove(), 300);
+                        resolve(false);
+                    }
                 });
             });
         }
@@ -3812,9 +4658,137 @@
                 }
             }
         }
-
-        // Initialiser le widget de suivi
-        document.addEventListener('DOMContentLoaded', () => {
+        
+        // Fonction pour envoyer les emails groupés avec l'éditeur avancé
+        async function sendGroupEmails() {
+            if (!window.groupEmailEditor) {
+                showAlert('❌ Éditeur non initialisé', 'error');
+                return;
+            }
+            
+            // Récupérer les options d'envoi
+            const sendType = document.getElementById('sendType').value;
+            const sendSpeed = document.getElementById('sendSpeed').value;
+            const customCount = document.getElementById('groupEmailCount').value;
+            
+            // Déterminer les contacts à envoyer
+            let contactsToSend = [];
+            
+            switch(sendType) {
+                case 'all':
+                    contactsToSend = importedContacts;
+                    break;
+                case 'pending':
+                    contactsToSend = importedContacts.filter(c => !c.sent);
+                    break;
+                case 'custom':
+                    const count = parseInt(customCount) || 0;
+                    contactsToSend = importedContacts.slice(0, count);
+                    break;
+            }
+            
+            if (contactsToSend.length === 0) {
+                showAlert('❌ Aucun contact à envoyer', 'error');
+                return;
+            }
+            
+            // Confirmation
+            const confirmed = await showConfirmModal({
+                title: '📧 Envoi Groupé',
+                message: `Vous allez envoyer ${contactsToSend.length} emails avec le sujet "${subject}".`,
+                emailsToSend: contactsToSend.length,
+                totalContacts: importedContacts.length,
+                subject: subject
+            });
+            
+            if (!confirmed) return;
+            
+            try {
+                // Préparer les données pour l'envoi
+                const emailData = {
+                    to: contactsToSend.map(c => c.email),
+                    cc: window.groupEmailEditor ? window.groupEmailEditor.getEmailData().cc : [],
+                    bcc: window.groupEmailEditor ? window.groupEmailEditor.getEmailData().bcc : [],
+                    subject: subject,
+                    message: finalMessage,
+                    attachments: attachments,
+                    isHtml: true,
+                    sendType: sendType,
+                    sendSpeed: sendSpeed
+                };
+                
+                console.log('Sending group emails:', emailData);
+                
+                // Afficher l'indicateur de chargement
+                showAlert('📧 Envoi des emails en cours...', 'info');
+                
+                // Appel API pour envoyer les emails
+                const response = await apiFetch('/api/send-group-advanced-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(emailData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Popup spécial pour envoi groupé réussi
+                    showGroupEmailSuccessPopup(result.sent, contactsToSend.length, sendType, sendSpeed);
+                    
+                    // Mettre à jour les contacts comme envoyés
+                    contactsToSend.forEach(contact => {
+                        contact.sent = true;
+                        contact.sentAt = new Date().toISOString();
+                    });
+                    
+                    // Mettre à jour l'interface
+                    await loadContacts();
+                    await updateNavBadges();
+                    
+                    // Mettre à jour le widget de suivi
+                    if (typeof loadEmailTracking === 'function') {
+                        loadEmailTracking();
+                    }
+                    
+                    // Vider l'éditeur
+                    window.groupEmailEditor.clearForm();
+                    
+                } else {
+                    showAlert('❌ Erreur lors de l\'envoi: ' + (result.error || 'Erreur inconnue'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erreur envoi groupé:', error);
+                showAlert('❌ Erreur: ' + error.message, 'error');
+            }
+        }
+        
+        // Initialiser le widget de suivi et les éditeurs d'email
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialiser l'éditeur d'email avancé (manuel)
+            if (typeof EmailEditor !== 'undefined') {
+                window.emailEditor = new EmailEditor('advanced-email-editor', {
+                    enableAttachments: true,
+                    enableSignature: true,
+                    enableFormatting: true,
+                    userName: 'Expobeton RDC',
+                    userTitle: 'Service Communication',
+                    userCompany: 'Expobeton RDC'
+                });
+                
+                // Initialiser l'éditeur d'email avancé (groupé)
+                window.groupEmailEditor = new EmailEditor('group-email-editor', {
+                    enableAttachments: true,
+                    enableSignature: true,
+                    enableFormatting: true,
+                    userName: 'Expobeton RDC',
+                    userTitle: 'Service Communication',
+                    userCompany: 'Expobeton RDC'
+                });
+            }
+            
             // Ajouter le widget après la section des contacts
             const contactsSection = document.querySelector('.email-list');
             if (contactsSection) {
@@ -3822,12 +4796,13 @@
                 contactsSection.parentNode.insertBefore(widget, contactsSection.nextSibling);
                 
                 // Charger les données initiales
-                loadEmailTracking();
+                await loadEmailTracking();
                 
                 // Rafraîchir toutes les 30 secondes
-                setInterval(loadEmailTracking, 30000);
+                setInterval(async () => await loadEmailTracking(), 30000);
             }
         });
     </script>
+    <script src="email-editor.js"></script>
 </body>
 </html>
