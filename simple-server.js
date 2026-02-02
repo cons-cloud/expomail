@@ -392,6 +392,27 @@ app.post('/api/manual-recipients', async (req, res) => {
     }
 });
 
+app.delete('/api/contacts', async (req, res) => {
+    try {
+        const count = importedContacts.length;
+        importedContacts = [];
+        
+        // Sauvegarder automatiquement
+        await saveContactsToFile();
+        
+        console.log(`🗑️ ${count} contacts supprimés`);
+        
+        res.json({
+            success: true,
+            message: `${count} contacts supprimés avec succès`
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur suppression contacts:', error);
+        res.status(500).json({ success: false, error: 'Erreur suppression' });
+    }
+});
+
 app.delete('/api/manual-recipients', async (req, res) => {
     try {
         const count = manualRecipients.length;

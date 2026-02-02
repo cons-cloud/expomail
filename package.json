@@ -2,19 +2,19 @@
   "name": "hyperemail",
   "version": "3.0.0",
   "description": "HyperEmail - Scraper d'emails intelligent avec envoi automatique et export CSV",
-  "main": "gouvernement-scraper.js",
+  "main": "simple-server.js",
   "engines": {
     "node": "20.x"
   },
   "scripts": {
     "preinstall": "npm config set legacy-peer-deps true",
-    "start": "node gouvernement-scraper.js",
+    "start": "node simple-server.js",
     "check": "node check-app.js",
     "check-env": "node check-env.js",
     "configure": "./configure.sh",
     "build": "LANG=en_US.UTF-8 npm install --no-optional",
-    "render-start": "node check-env.js && node gouvernement-scraper.js",
-    "railway-start": "LANG=en_US.UTF-8 node check-env.js && node gouvernement-scraper.js"
+    "render-start": "node check-env.js && node simple-server.js",
+    "railway-start": "LANG=en_US.UTF-8 node check-env.js && node simple-server.js"
   },
   "keywords": [
     "email",
